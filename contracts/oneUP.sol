@@ -67,11 +67,12 @@ contract OneUp is ERC4626 {
     function totalAssets() public view override returns (uint256) {
         uint256 curveLPBalance = IERC20(curvePool).balanceOf(address(this));
         uint256 curvePoolTotalSupply = IERC20(curvePool).totalSupply();
+        uint256 curveTotalTokens = oneInchToken.balanceOf(curvePool) + balanceOf(curvePool);
 
         if (curvePoolTotalSupply == 0) {
             return totalStaked;
         } else {
-            uint256 totalOneInchTokensInCurve = (curveLPBalance * 10**18) / curvePoolTotalSupply;
+            uint256 totalOneInchTokensInCurve = (curveLPBalance * curveTotalTokens) / curvePoolTotalSupply;
             return totalOneInchTokensInCurve + totalStaked;
         }
 
@@ -82,7 +83,7 @@ contract OneUp is ERC4626 {
 
         uint256 duration;
 
-        // We set the starting values for the duration and first delegatee assigned
+        // We set the starting values for the duration as well as initial delegatee
         if (vaultStarted == false) {
             duration = 31556926; // 1 year
             delegatee = 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A;
