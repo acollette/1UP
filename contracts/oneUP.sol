@@ -63,7 +63,6 @@ contract OneUp is ERC4626 {
     ////////// Functions //////////
 
     function deposit(uint256 assets, address receiver) public override returns (uint256) {
-        require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
 
         uint256 duration;
 
@@ -104,7 +103,7 @@ contract OneUp is ERC4626 {
     /// @notice Sets the Curve 1inch/1UP pool address for this contract, callable only once.
     function setCurvePool(address _curvePool) public {
         require(curvePoolSet == false, "Curve pool already set");
-        
+
         curvePoolSet == true;
         curvePool = _curvePool;
     }

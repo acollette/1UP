@@ -26,6 +26,7 @@ interface ICurveFactory {
 interface IMultiFarmingPod {
     function startFarming(IERC20, uint256 amount, uint256 period) external;
     function claim() external;
+    function farmed(IERC20 rewardsToken, address account) external returns(uint256);
 }
 
 contract Test_OneUP is Test {
@@ -36,6 +37,7 @@ contract Test_OneUP is Test {
     address oneInchToken = 0x111111111117dC0aa78b770fA6A738034120C302;
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
     address curveFactory = 0xB9fC157394Af804a3578134A6585C0dc9cc990d4;
+    address curvePool;
 
     OneUp OneUpContract;
 
@@ -63,9 +65,10 @@ contract Test_OneUP is Test {
         uint256 _A = 300;
         uint256 _fee = 50000000; // 0.5 %
 
-        address deployedCurvePool = ICurveFactory(curveFactory).deploy_plain_pool(_name, _symbol, _coins, _A, _fee, 3, 3); 
+        curvePool = ICurveFactory(curveFactory).deploy_plain_pool(_name, _symbol, _coins, _A, _fee, 3, 3); 
+        OneUpContract.setCurvePool(curvePool);
         
-        emit log_named_address("Curve Pool deployed", deployedCurvePool);
+        emit log_named_address("Curve Pool deployed", curvePool);
     }
 
 
@@ -112,19 +115,27 @@ contract Test_OneUP is Test {
         
         // impersonate the distributor of the farm and start reward period
         address distributor = 0x5E89f8d81C74E311458277EA1Be3d3247c7cd7D1;
+        address farmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
         vm.startPrank(distributor);
 
+        IERC20(oneInchToken).safeApprove(farmingPod, 1_000_000 ether);
+        IMultiFarmingPod(farmingPod).startFarming(IERC20(oneInchToken), 1_000_000 ether, 60 days);
+        vm.stopPrank();
 
+        emit log_named_uint("Farmed init", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
 
-
-
+        // + 50 days
         vm.warp(block.timestamp + 50 days);
         deposit(1000 ether);
+        emit log_named_uint("Farmed after 50 days", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
 
+        // claim rewards
+        vm.startPrank(address(OneUpContract));
+        IMultiFarmingPod(farmingPod).claim();
+        vm.stopPrank();
 
+        emit log_named_uint("1inch balance of Curve Pool", IERC20(oneInchToken).balanceOf(curvePool));
 
     }
-
-
 
 }

@@ -1,51 +1,56 @@
 {
   "abi": [
     {
+      "inputs": [],
+      "name": "claim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [
         {
-          "internalType": "string",
-          "name": "_name",
-          "type": "string"
+          "internalType": "contract IERC20",
+          "name": "rewardsToken",
+          "type": "address"
         },
-        {
-          "internalType": "string",
-          "name": "_symbol",
-          "type": "string"
-        },
-        {
-          "internalType": "address[4]",
-          "name": "_coins",
-          "type": "address[4]"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_A",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_fee",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_asset_type",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "_implementation_idx",
-          "type": "uint256"
-        }
-      ],
-      "name": "deploy_plain_pool",
-      "outputs": [
         {
           "internalType": "address",
-          "name": "",
+          "name": "account",
           "type": "address"
         }
       ],
+      "name": "farmed",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "period",
+          "type": "uint256"
+        }
+      ],
+      "name": "startFarming",
+      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     }
@@ -61,9 +66,11 @@
     "linkReferences": {}
   },
   "methodIdentifiers": {
-    "deploy_plain_pool(string,string,address[4],uint256,uint256,uint256,uint256)": "52f2db69"
+    "claim()": "4e71d92d",
+    "farmed(address,address)": "b1bd3517",
+    "startFarming(address,uint256,uint256)": "e6235ba7"
   },
-  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_name\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"_symbol\",\"type\":\"string\"},{\"internalType\":\"address[4]\",\"name\":\"_coins\",\"type\":\"address[4]\"},{\"internalType\":\"uint256\",\"name\":\"_A\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_fee\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_asset_type\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_implementation_idx\",\"type\":\"uint256\"}],\"name\":\"deploy_plain_pool\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"test/foundry/OneUp.t.sol\":\"ICurveFactory\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/=node_modules/@openzeppelin/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":eth-gas-reporter/=node_modules/eth-gas-reporter/\",\":forge-std/=lib/forge-std/src/\",\":hardhat/=node_modules/hardhat/\"]},\"sources\":{\"contracts/OneUp.sol\":{\"keccak256\":\"0x681b21a530bb9bdb68cb4c8f46076844a53b976189f8d08d122744c985e8be12\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://5911d0a0b67d671e857e7912b0d7be9c14425f147a3a2b5953a07d4dcc0cd5f8\",\"dweb:/ipfs/Qmevyy7u75THQEdz7JEf1CN1q8Snnqyqm9gXAJLkCa8VYx\"]},\"lib/forge-std/lib/ds-test/src/test.sol\":{\"keccak256\":\"0xb39cd1d5220cb474947b131e15a4538334b7e886af244b440ae5c9c6bba96a54\",\"license\":\"GPL-3.0-or-later\",\"urls\":[\"bzz-raw://3101520221449ac0070bda3881311a71d9aa87e5210765e875246922cb5cb5f5\",\"dweb:/ipfs/Qmbg6kAHNoG7ox9N9Xqd9Ere2H2XixMFWFqvyPwFCzB3Gr\"]},\"lib/forge-std/src/Script.sol\":{\"keccak256\":\"0x4424dbcb8f5b741475445726f87408fcd89951fad973bec2ca442ee157f910e7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5b0b9f6dfb69245d8f888558ae82bf1d2cdeace46201444fe4b2e6a5283f944a\",\"dweb:/ipfs/QmWFSKeFEZngNcwNn7A84EF7pASo5qe6r5oK24r9Kwca7Z\"]},\"lib/forge-std/src/Test.sol\":{\"keccak256\":\"0x5d84dd1e27d9127431d6f9aaeb681227235f2b0285545384d1dc236cbcab1364\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6fe33b19854be51975ae89d4f4d3074a8b4bbd3c0e4dc5befe84d165f7462b55\",\"dweb:/ipfs/Qma45Q6fvwpmke2rdPdZapNqjXv17ReoT4xp4Tnj1JdBd7\"]},\"lib/forge-std/src/Vm.sol\":{\"keccak256\":\"0x63fc2487cf3a6650d933e18bcb61766f15f74c327192381806ea00f8f6446f66\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://aad99f7b2ed3b11ff6c17b84b4196c562898640a80cabc2c28c87c116099a00f\",\"dweb:/ipfs/QmQNNbxHabRycegyXwJWBDutrdcScAP2SU5zEvorWEaFpx\"]},\"lib/forge-std/src/console.sol\":{\"keccak256\":\"0x91d5413c2434ca58fd278b6e1e79fd98d10c83931cc2596a6038eee4daeb34ba\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://91ccea707361e48b9b7a161fe81f496b9932bc471e9c4e4e1e9c283f2453cc70\",\"dweb:/ipfs/QmcB66sZhQ6Kz7MUHcLE78YXRUZxoZnnxZjN6yATsbB2ec\"]},\"lib/forge-std/src/console2.sol\":{\"keccak256\":\"0xbeb823fcdb356244a83aaccdf828ad019ecc1ffaa3dff18e624fc6d5714ea671\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://4cbe9400340e5f9ec55e2aff3bad1c15fa3afbbe37e80800e6f3fed2ad26854f\",\"dweb:/ipfs/QmdJBABsuXkvWxVzEyGXsTE3vyfBPXDdw5xvvtUz3JeoYW\"]},\"node_modules/@openzeppelin/contracts/interfaces/IERC4626.sol\":{\"keccak256\":\"0xd82776ed6975a5939668e068f995acb1394c2f60a12a9ef3f14cacb91b5a8fd4\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://0f381a6a834cd8d5296b819365ffd39d192ab7ac3d458b894a612d1c3b92f03f\",\"dweb:/ipfs/QmTRQE9c57bHGtuubLp8fMAA5jfsb1BR5s7iPd9cWSPfKm\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol\":{\"keccak256\":\"0x4ffc0547c02ad22925310c585c0f166f8759e2648a09e9b489100c42f15dd98d\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://15f52f51413a9de1ff191e2f6367c62178e1df7806d7880fe857a98b0b66253d\",\"dweb:/ipfs/QmaQG1fwfgUt5E9nu2cccFiV47B2V78MM1tCy1qB7n4MsH\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"keccak256\":\"0x9750c6b834f7b43000631af5cc30001c5f547b3ceb3635488f140f60e897ea6b\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5a7d5b1ef5d8d5889ad2ed89d8619c09383b80b72ab226e0fe7bde1636481e34\",\"dweb:/ipfs/QmebXWgtEfumQGBdVeM6c71McLixYXQP5Bk6kKXuoY4Bmr\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol\":{\"keccak256\":\"0xab83c36e40ee8fd41471fe94edcad13adae83b7f5179d022780062414e8fbf55\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://0ff872f2a6fb1431e727c09151ffbb30f3e45212d6ad73b64b27c6b64608a23b\",\"dweb:/ipfs/Qmd2Gzqb12qheWkL94RBK1HU9XBoKwECUbXwLpahR35u31\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol\":{\"keccak256\":\"0x8de418a5503946cabe331f35fe242d3201a73f67f77aaeb7110acb1f30423aca\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5a376d3dda2cb70536c0a45c208b29b34ac560c4cb4f513a42079f96ba47d2dd\",\"dweb:/ipfs/QmZQg6gn1sUpM8wHzwNvSnihumUCAhxD119MpXeKp8B9s8\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol\":{\"keccak256\":\"0xf41ca991f30855bf80ffd11e9347856a517b977f0a6c2d52e6421a99b7840329\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://b2717fd2bdac99daa960a6de500754ea1b932093c946388c381da48658234b95\",\"dweb:/ipfs/QmP6QVMn6UeA3ByahyJbYQr5M6coHKBKsf3ySZSfbyA8R7\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\":{\"keccak256\":\"0x9b72f93be69ca894d8492c244259615c4a742afc8d63720dbc8bb81087d9b238\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://f5a7b96e511be78d5cdf635c784e6ab8cdd38625bb8cafb8a80914a1c89cf0f6\",\"dweb:/ipfs/QmVzTCwJxQAkjRQHboT5QrvsVJGWQHgfEjeTbvyxoKBrds\"]},\"node_modules/@openzeppelin/contracts/utils/Address.sol\":{\"keccak256\":\"0xf96f969e24029d43d0df89e59d365f277021dac62b48e1c1e3ebe0acdd7f1ca1\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ec772b45a624be516f1c81970caa8a2e144301e9d0921cbc1a2789fef39a1269\",\"dweb:/ipfs/QmNyjwxCrGhQMyzLD93oUobJXVe9ceJvRvfXwbEtuxPiEj\"]},\"node_modules/@openzeppelin/contracts/utils/Context.sol\":{\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6df0ddf21ce9f58271bdfaa85cde98b200ef242a05a3f85c2bc10a8294800a92\",\"dweb:/ipfs/QmRK2Y5Yc6BK7tGKkgsgn3aJEQGi5aakeSPZvS65PV8Xp3\"]},\"node_modules/@openzeppelin/contracts/utils/math/Math.sol\":{\"keccak256\":\"0xa1e8e83cd0087785df04ac79fb395d9f3684caeaf973d9e2c71caef723a3a5d6\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://33bbf48cc069be677705037ba7520c22b1b622c23b33e1a71495f2d36549d40b\",\"dweb:/ipfs/Qmct36zWXv3j7LZB83uwbg7TXwnZSN1fqHNDZ93GG98bGz\"]},\"test/foundry/OneUp.t.sol\":{\"keccak256\":\"0xcae169672ba331b3a4b52bec738dd3fa22e6d6989c72ff566df9291439c14013\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://e271137bb636d2992e89b01f3df0debb7ac2186ebbbf02996980af4ee9090838\",\"dweb:/ipfs/QmVKfgutnc5f9VE4scKWej8YgQtxtBfaC4fr6RQowsHH5V\"]}},\"version\":1}",
+  "rawMetadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"claim\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"rewardsToken\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"farmed\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"period\",\"type\":\"uint256\"}],\"name\":\"startFarming\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"test/foundry/OneUp.t.sol\":\"IMultiFarmingPod\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/=node_modules/@openzeppelin/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":eth-gas-reporter/=node_modules/eth-gas-reporter/\",\":forge-std/=lib/forge-std/src/\",\":hardhat/=node_modules/hardhat/\"]},\"sources\":{\"contracts/OneUp.sol\":{\"keccak256\":\"0x681b21a530bb9bdb68cb4c8f46076844a53b976189f8d08d122744c985e8be12\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://5911d0a0b67d671e857e7912b0d7be9c14425f147a3a2b5953a07d4dcc0cd5f8\",\"dweb:/ipfs/Qmevyy7u75THQEdz7JEf1CN1q8Snnqyqm9gXAJLkCa8VYx\"]},\"lib/forge-std/lib/ds-test/src/test.sol\":{\"keccak256\":\"0xb39cd1d5220cb474947b131e15a4538334b7e886af244b440ae5c9c6bba96a54\",\"license\":\"GPL-3.0-or-later\",\"urls\":[\"bzz-raw://3101520221449ac0070bda3881311a71d9aa87e5210765e875246922cb5cb5f5\",\"dweb:/ipfs/Qmbg6kAHNoG7ox9N9Xqd9Ere2H2XixMFWFqvyPwFCzB3Gr\"]},\"lib/forge-std/src/Script.sol\":{\"keccak256\":\"0x4424dbcb8f5b741475445726f87408fcd89951fad973bec2ca442ee157f910e7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5b0b9f6dfb69245d8f888558ae82bf1d2cdeace46201444fe4b2e6a5283f944a\",\"dweb:/ipfs/QmWFSKeFEZngNcwNn7A84EF7pASo5qe6r5oK24r9Kwca7Z\"]},\"lib/forge-std/src/Test.sol\":{\"keccak256\":\"0x5d84dd1e27d9127431d6f9aaeb681227235f2b0285545384d1dc236cbcab1364\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6fe33b19854be51975ae89d4f4d3074a8b4bbd3c0e4dc5befe84d165f7462b55\",\"dweb:/ipfs/Qma45Q6fvwpmke2rdPdZapNqjXv17ReoT4xp4Tnj1JdBd7\"]},\"lib/forge-std/src/Vm.sol\":{\"keccak256\":\"0x63fc2487cf3a6650d933e18bcb61766f15f74c327192381806ea00f8f6446f66\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://aad99f7b2ed3b11ff6c17b84b4196c562898640a80cabc2c28c87c116099a00f\",\"dweb:/ipfs/QmQNNbxHabRycegyXwJWBDutrdcScAP2SU5zEvorWEaFpx\"]},\"lib/forge-std/src/console.sol\":{\"keccak256\":\"0x91d5413c2434ca58fd278b6e1e79fd98d10c83931cc2596a6038eee4daeb34ba\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://91ccea707361e48b9b7a161fe81f496b9932bc471e9c4e4e1e9c283f2453cc70\",\"dweb:/ipfs/QmcB66sZhQ6Kz7MUHcLE78YXRUZxoZnnxZjN6yATsbB2ec\"]},\"lib/forge-std/src/console2.sol\":{\"keccak256\":\"0xbeb823fcdb356244a83aaccdf828ad019ecc1ffaa3dff18e624fc6d5714ea671\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://4cbe9400340e5f9ec55e2aff3bad1c15fa3afbbe37e80800e6f3fed2ad26854f\",\"dweb:/ipfs/QmdJBABsuXkvWxVzEyGXsTE3vyfBPXDdw5xvvtUz3JeoYW\"]},\"node_modules/@openzeppelin/contracts/interfaces/IERC4626.sol\":{\"keccak256\":\"0xd82776ed6975a5939668e068f995acb1394c2f60a12a9ef3f14cacb91b5a8fd4\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://0f381a6a834cd8d5296b819365ffd39d192ab7ac3d458b894a612d1c3b92f03f\",\"dweb:/ipfs/QmTRQE9c57bHGtuubLp8fMAA5jfsb1BR5s7iPd9cWSPfKm\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol\":{\"keccak256\":\"0x4ffc0547c02ad22925310c585c0f166f8759e2648a09e9b489100c42f15dd98d\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://15f52f51413a9de1ff191e2f6367c62178e1df7806d7880fe857a98b0b66253d\",\"dweb:/ipfs/QmaQG1fwfgUt5E9nu2cccFiV47B2V78MM1tCy1qB7n4MsH\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"keccak256\":\"0x9750c6b834f7b43000631af5cc30001c5f547b3ceb3635488f140f60e897ea6b\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5a7d5b1ef5d8d5889ad2ed89d8619c09383b80b72ab226e0fe7bde1636481e34\",\"dweb:/ipfs/QmebXWgtEfumQGBdVeM6c71McLixYXQP5Bk6kKXuoY4Bmr\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol\":{\"keccak256\":\"0xab83c36e40ee8fd41471fe94edcad13adae83b7f5179d022780062414e8fbf55\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://0ff872f2a6fb1431e727c09151ffbb30f3e45212d6ad73b64b27c6b64608a23b\",\"dweb:/ipfs/Qmd2Gzqb12qheWkL94RBK1HU9XBoKwECUbXwLpahR35u31\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol\":{\"keccak256\":\"0x8de418a5503946cabe331f35fe242d3201a73f67f77aaeb7110acb1f30423aca\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5a376d3dda2cb70536c0a45c208b29b34ac560c4cb4f513a42079f96ba47d2dd\",\"dweb:/ipfs/QmZQg6gn1sUpM8wHzwNvSnihumUCAhxD119MpXeKp8B9s8\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol\":{\"keccak256\":\"0xf41ca991f30855bf80ffd11e9347856a517b977f0a6c2d52e6421a99b7840329\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://b2717fd2bdac99daa960a6de500754ea1b932093c946388c381da48658234b95\",\"dweb:/ipfs/QmP6QVMn6UeA3ByahyJbYQr5M6coHKBKsf3ySZSfbyA8R7\"]},\"node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol\":{\"keccak256\":\"0x9b72f93be69ca894d8492c244259615c4a742afc8d63720dbc8bb81087d9b238\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://f5a7b96e511be78d5cdf635c784e6ab8cdd38625bb8cafb8a80914a1c89cf0f6\",\"dweb:/ipfs/QmVzTCwJxQAkjRQHboT5QrvsVJGWQHgfEjeTbvyxoKBrds\"]},\"node_modules/@openzeppelin/contracts/utils/Address.sol\":{\"keccak256\":\"0xf96f969e24029d43d0df89e59d365f277021dac62b48e1c1e3ebe0acdd7f1ca1\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ec772b45a624be516f1c81970caa8a2e144301e9d0921cbc1a2789fef39a1269\",\"dweb:/ipfs/QmNyjwxCrGhQMyzLD93oUobJXVe9ceJvRvfXwbEtuxPiEj\"]},\"node_modules/@openzeppelin/contracts/utils/Context.sol\":{\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6df0ddf21ce9f58271bdfaa85cde98b200ef242a05a3f85c2bc10a8294800a92\",\"dweb:/ipfs/QmRK2Y5Yc6BK7tGKkgsgn3aJEQGi5aakeSPZvS65PV8Xp3\"]},\"node_modules/@openzeppelin/contracts/utils/math/Math.sol\":{\"keccak256\":\"0xa1e8e83cd0087785df04ac79fb395d9f3684caeaf973d9e2c71caef723a3a5d6\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://33bbf48cc069be677705037ba7520c22b1b622c23b33e1a71495f2d36549d40b\",\"dweb:/ipfs/Qmct36zWXv3j7LZB83uwbg7TXwnZSN1fqHNDZ93GG98bGz\"]},\"test/foundry/OneUp.t.sol\":{\"keccak256\":\"0xcae169672ba331b3a4b52bec738dd3fa22e6d6989c72ff566df9291439c14013\",\"license\":\"UNLICENSED\",\"urls\":[\"bzz-raw://e271137bb636d2992e89b01f3df0debb7ac2186ebbbf02996980af4ee9090838\",\"dweb:/ipfs/QmVKfgutnc5f9VE4scKWej8YgQtxtBfaC4fr6RQowsHH5V\"]}},\"version\":1}",
   "metadata": {
     "compiler": {
       "version": "0.8.17+commit.8df45f5f"
@@ -72,53 +79,56 @@
     "output": {
       "abi": [
         {
+          "inputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "claim"
+        },
+        {
           "inputs": [
             {
-              "internalType": "string",
-              "name": "_name",
-              "type": "string"
+              "internalType": "contract IERC20",
+              "name": "rewardsToken",
+              "type": "address"
             },
             {
-              "internalType": "string",
-              "name": "_symbol",
-              "type": "string"
-            },
+              "internalType": "address",
+              "name": "account",
+              "type": "address"
+            }
+          ],
+          "stateMutability": "nonpayable",
+          "type": "function",
+          "name": "farmed",
+          "outputs": [
             {
-              "internalType": "address[4]",
-              "name": "_coins",
-              "type": "address[4]"
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ]
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "contract IERC20",
+              "name": "",
+              "type": "address"
             },
             {
               "internalType": "uint256",
-              "name": "_A",
+              "name": "amount",
               "type": "uint256"
             },
             {
               "internalType": "uint256",
-              "name": "_fee",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "_asset_type",
-              "type": "uint256"
-            },
-            {
-              "internalType": "uint256",
-              "name": "_implementation_idx",
+              "name": "period",
               "type": "uint256"
             }
           ],
           "stateMutability": "nonpayable",
           "type": "function",
-          "name": "deploy_plain_pool",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ]
+          "name": "startFarming"
         }
       ],
       "devdoc": {
@@ -148,7 +158,7 @@
         "bytecodeHash": "ipfs"
       },
       "compilationTarget": {
-        "test/foundry/OneUp.t.sol": "ICurveFactory"
+        "test/foundry/OneUp.t.sol": "IMultiFarmingPod"
       },
       "libraries": {}
     },
