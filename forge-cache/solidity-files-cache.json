@@ -13,8 +13,8 @@
   },
   "files": {
     "contracts/OneUp.sol": {
-      "lastModificationDate": 1683909354423,
-      "contentHash": "f6975a3e90c787e4636d78e329f44fa0",
+      "lastModificationDate": 1683923858653,
+      "contentHash": "b01bcad687a6f59e8a6ace9bc2e5ed99",
       "sourceName": "contracts/OneUp.sol",
       "solcConfig": {
         "settings": {
@@ -58,11 +58,17 @@
       ],
       "versionRequirement": "^0.8.17",
       "artifacts": {
+        "ICurveBasePool": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.sol/ICurveBasePool.json"
+        },
         "IPowerPod": {
           "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.sol/IPowerPod.json"
         },
         "ISt1inch": {
           "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.sol/ISt1inch.json"
+        },
+        "IStakingFarmingPod": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.sol/IStakingFarmingPod.json"
         },
         "OneUp": {
           "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.sol/OneUp.json"
@@ -752,8 +758,8 @@
       }
     },
     "test/foundry/OneUp.t.sol": {
-      "lastModificationDate": 1683909177253,
-      "contentHash": "ef8c21ba1547452ed1d9a682c2ada509",
+      "lastModificationDate": 1683923213990,
+      "contentHash": "5fd95818e164f0300bfb209a5d905e63",
       "sourceName": "test/foundry/OneUp.t.sol",
       "solcConfig": {
         "settings": {
@@ -804,6 +810,9 @@
       ],
       "versionRequirement": "^0.8.16",
       "artifacts": {
+        "ICurveFactory": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.t.sol/ICurveFactory.json"
+        },
         "Test_OneUP": {
           "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.t.sol/Test_OneUP.json"
         }

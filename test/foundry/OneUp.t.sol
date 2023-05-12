@@ -23,6 +23,11 @@ interface ICurveFactory {
     ) external returns (address);
 }
 
+interface IMultiFarmingPod {
+    function startFarming(IERC20, uint256 amount, uint256 period) external;
+    function claim() external;
+}
+
 contract Test_OneUP is Test {
 
     using SafeERC20 for IERC20;
@@ -33,6 +38,20 @@ contract Test_OneUP is Test {
     address curveFactory = 0xB9fC157394Af804a3578134A6585C0dc9cc990d4;
 
     OneUp OneUpContract;
+
+    ///////////// Helper Functions //////////////
+
+    function deposit(uint256 amount) public {
+        deal(address(OneUpContract.oneInchToken()), bob, amount);
+
+        vm.startPrank(bob);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), amount);
+        OneUpContract.deposit(amount, bob);
+        vm.stopPrank();
+    } 
+
+
+    ///////////// setUp //////////////
 
     function setUp() public {
         OneUpContract = new OneUp();
@@ -48,6 +67,10 @@ contract Test_OneUP is Test {
         
         emit log_named_address("Curve Pool deployed", deployedCurvePool);
     }
+
+
+
+    ///////////// Testing //////////////
 
     function test_OneUp_init_state() public {
         assert(address(OneUpContract.oneInchToken()) == 0x111111111117dC0aa78b770fA6A738034120C302);
@@ -85,6 +108,19 @@ contract Test_OneUP is Test {
     }
 
     function test_OneUp_claimRewardsFromDelegates_state() public {
+        deposit(1000 ether);
+        
+        // impersonate the distributor of the farm and start reward period
+        address distributor = 0x5E89f8d81C74E311458277EA1Be3d3247c7cd7D1;
+        vm.startPrank(distributor);
+
+
+
+
+
+        vm.warp(block.timestamp + 50 days);
+        deposit(1000 ether);
+
 
 
     }

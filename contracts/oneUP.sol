@@ -19,7 +19,7 @@ interface IPowerPod {
     function delegate(address delegatee) external;
 }
 
-interface IStakingFarmingPod {
+interface IMultiFarmingPod {
     function claim() external;
 }
 
@@ -41,13 +41,13 @@ contract OneUp is ERC4626 {
     IERC20 immutable public oneInchToken = IERC20(0x111111111117dC0aa78b770fA6A738034120C302);
     address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;  
     address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
-    address immutable public stakingFarmingPod = 0x1A87c0F9CCA2f0926A155640e8958a8A6B0260bE;
+    address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
 
-    bool public vaultStarted;   /// @dev Will be set to "true" after first deposit 
-    bool public curvePoolSet;   /// @dev Returns "true" once the Curve Pool has been set
-    address public delegatee;   /// @dev The address of the current delegatee
-    address public curvePool;   /// @dev The 1inch/1UP Curve Pool
-    uint256 public endTime;     /// @dev The time at which the vault balance will be unstakable
+    bool public vaultStarted;         /// @dev Will be set to "true" after first deposit 
+    bool public curvePoolSet;         /// @dev Returns "true" once the Curve Pool has been set
+    address public delegatee;         /// @dev The address of the current delegatee
+    address public curvePool;         /// @dev The 1inch/1UP Curve Pool
+    uint256 public endTime;           /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime; /// @dev The last time that "endTime" was updated
 
 
@@ -94,7 +94,7 @@ contract OneUp is ERC4626 {
 
     /// @notice This function will claim rewards from the delegates and provide liquidity in the Curve pool.
     function claimRewardsFromDelegate() public {
-        IStakingFarmingPod(stakingFarmingPod).claim();
+        IMultiFarmingPod(resolverFarmingPod).claim();
         uint256[2] memory amounts = [oneInchToken.balanceOf(address(this)), 0];
         IERC20(address(oneInchToken)).safeApprove(curvePool, oneInchToken.balanceOf(address(this)));
         ICurveBasePool(curvePool).add_liquidity(amounts, 0);
@@ -104,7 +104,7 @@ contract OneUp is ERC4626 {
     /// @notice Sets the Curve 1inch/1UP pool address for this contract, callable only once.
     function setCurvePool(address _curvePool) public {
         require(curvePoolSet == false, "Curve pool already set");
-
+        
         curvePoolSet == true;
         curvePool = _curvePool;
     }
