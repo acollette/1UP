@@ -19,6 +19,17 @@ interface IPowerPod {
     function delegate(address delegatee) external;
 }
 
+interface IStakingFarmingPod {
+    function claim() external;
+}
+
+interface ICurveBasePool{
+    function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
+    function remove_liquidity(uint256 _amount, uint256[2] memory min_amounts) external;
+}
+
+
+
     ////////// Contract //////////
 
 contract OneUp is ERC4626 {
@@ -30,9 +41,15 @@ contract OneUp is ERC4626 {
     IERC20 immutable public oneInchToken = IERC20(0x111111111117dC0aa78b770fA6A738034120C302);
     address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;  
     address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
-    
+    address immutable public stakingFarmingPod = 0x1A87c0F9CCA2f0926A155640e8958a8A6B0260bE;
+    address public curvePool;   /// @dev The 1inch/1UP Curve Pool
+
     bool public vaultStarted;   /// @dev Will be set to "true" after first deposit 
+    bool public curvePoolSet;   /// @dev Returns "true" once the Curve Pool has been set
     address public delegatee;   /// @dev The address of the current delegatee
+    uint256 public endTime;     /// @dev The time at which the vault balance will be unstakable
+    uint256 public lastUpdateEndTime; /// @dev The last time that "endTime" was updated
+
 
 
     ////////// Constructor //////////
@@ -52,8 +69,14 @@ contract OneUp is ERC4626 {
 
         // We set the starting values for the duration and first delegatee assigned
         if (vaultStarted == false) {
-            duration = 31556926;
+            duration = 31556926; // 1 year
             delegatee = 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A;
+            endTime = block.timestamp + 31556926; // time at which vault balance will be unstakable
+            lastUpdateEndTime = block.timestamp; 
+        } else if (block.timestamp > lastUpdateEndTime + 30 days) {
+            endTime += 30 days;
+            lastUpdateEndTime = block.timestamp;
+            duration = 30 days;
         }
 
         uint256 shares = previewDeposit(assets);
@@ -68,6 +91,20 @@ contract OneUp is ERC4626 {
 
         return shares;
     }
-    
 
+    function claimRewardsFromDelegate() public {
+        IStakingFarmingPod(stakingFarmingPod).claim();
+
+    }
+
+    function claimRewardsFromCurve() public {
+        
+    }
+    
+    function setCurvePool(address _curvePool) public {
+        require(curvePoolSet == false, "Curve pool already set");
+
+        curvePoolSet == true;
+        curvePool = _curvePool;
+    }
 }
