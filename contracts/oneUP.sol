@@ -49,6 +49,7 @@ contract OneUp is ERC4626 {
     address public curvePool;         /// @dev The 1inch/1UP Curve Pool
     uint256 public endTime;           /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime; /// @dev The last time that "endTime" was updated
+    uint256 public totalStaked;
 
 
 
@@ -62,7 +63,22 @@ contract OneUp is ERC4626 {
 
     ////////// Functions //////////
 
+    // todo: double check the impact/precision of "totalOneInchTokensInCurve" calculation here.
+    function totalAssets() public view override returns (uint256) {
+        uint256 curveLPBalance = IERC20(curvePool).balanceOf(address(this));
+        uint256 curvePoolTotalSupply = IERC20(curvePool).totalSupply();
+
+        if (curvePoolTotalSupply == 0) {
+            return totalStaked;
+        } else {
+            uint256 totalOneInchTokensInCurve = (curveLPBalance * 10**18) / curvePoolTotalSupply;
+            return totalOneInchTokensInCurve + totalStaked;
+        }
+
+    }
+
     function deposit(uint256 assets, address receiver) public override returns (uint256) {
+        require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
 
         uint256 duration;
 
@@ -79,6 +95,7 @@ contract OneUp is ERC4626 {
         }
 
         uint256 shares = previewDeposit(assets);
+        totalStaked += assets;
         _deposit(_msgSender(), receiver, assets, shares);
 
         // Stake tokens
