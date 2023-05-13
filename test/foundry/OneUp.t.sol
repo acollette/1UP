@@ -38,7 +38,7 @@ interface IBalancerVault {
 }
 
 interface IBalancerPool {
-    function token() external returns (address);
+    function getActualSupply() external returns (uint256);
 }
 
 interface IMultiFarmingPod {
@@ -104,12 +104,25 @@ contract Test_OneUP is Test {
         }
     }
 
-    function getBPTtokenAddress() public {
-        (address[] memory tokens, uint256[] memory balances,) = 
+    function getPool1UPBalance() public returns (uint256 pool1UPBalance) {
+        (, uint256[] memory balances,) = 
         IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
 
-        emit log_array(tokens);
-        emit log_array(balances);
+        return balances[1];
+    }
+
+    function getPool1InchBalance() public returns (uint256 pool1InchBalance) {
+        (, uint256[] memory balances,) = 
+        IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
+
+        return balances[0];
+    }
+
+    function getPoolBPTBalance() public returns (uint256 poolBPTBalance) {
+        (, uint256[] memory balances,) = 
+        IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
+
+        return balances[2];
     }
 
     function simulateRewardsClaimed(uint256 amount) public {
@@ -216,7 +229,6 @@ contract Test_OneUP is Test {
 
         uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(OneUpContract));
 
-        emit log_named_uint("balancerLPBalance", balancerLPBalance);
     }
 
 
@@ -315,14 +327,16 @@ contract Test_OneUP is Test {
     function test_fullFlow_simulation() public {
         emit log_named_uint("Alice 1UP init balance", OneUpContract.balanceOf(alice));
         emit log_named_uint("Nico 1UP init balance", OneUpContract.balanceOf(nico));
+        emit log_named_uint("Balancer Pool init 1UP balance", getPool1UPBalance());
 
         emit log_named_uint("Alice 1Inch init balance", IERC20(oneInchToken).balanceOf(alice));
         emit log_named_uint("Nico 1Inch init balance", IERC20(oneInchToken).balanceOf(nico));
+        emit log_named_uint("Balancer Pool init 1inch balance", getPool1InchBalance());
 
         vm.warp(block.timestamp + 10 days);
 
         ////////////// DAY 10 ///////////////
-        emit log_string("+10 days");
+        emit log_string("********** Day 10 **********");
         emit log_string("Alice makes a deposit of 1_000 1Inch tokens");
         // Alice makes a deposit of 1_000 1Inch
         deal(oneInchToken, alice, 1_000 ether);
@@ -333,10 +347,31 @@ contract Test_OneUP is Test {
         vm.stopPrank();
 
         emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
-        
+        emit log_named_uint("Balancer Pool 1UP balance", getPool1UPBalance());
+        emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
+        emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
+
+        //////////// DAY 30 ///////////////////
+        emit log_string("********** Day 30 **********");
+        emit log_string("Nico makes a deposit of 200 1Inch tokens");
+        // Bob makes a deposit of 200 1Inch
+        deal(oneInchToken, nico, 200 ether);
+
+        vm.startPrank(nico);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), 200 ether);
+        OneUpContract.deposit(200 ether, nico);
+        vm.stopPrank();
+
+        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
+        emit log_named_uint("Nico 1UP balance", OneUpContract.balanceOf(nico));
+        emit log_named_uint("Balancer Pool 1UP balance", getPool1UPBalance());
+        emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
+        emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
+        emit log_named_uint("OneUpContract BPT balance", IERC20(balancerPool).balanceOf(address(OneUpContract)));
+        emit log_named_uint("Total BPT balance", IBalancerPool(balancerPool).getActualSupply());
 
 
-
+    
     }
 
 }

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 
-    ////////// Interfaces //////////
+////////// Interfaces //////////
 
 interface ISt1inch {
     function deposit(uint256 amount, uint256 duration) external;
@@ -33,11 +33,12 @@ interface IBalancerPoolCreationHelper {
 }
 
 interface IBalancerPool {
-    function getPoolId() external returns(bytes32);
+    function getPoolId() external view returns(bytes32);
+    function getActualSupply() external view returns (uint256);
 }
 
 interface IBalancerVault {
-    function getPoolTokens(bytes32) external returns (address[] memory, uint256[] memory, uint256);
+    function getPoolTokens(bytes32) external view returns (address[] memory, uint256[] memory, uint256);
     function joinPool(
         bytes32 poolId,
         address sender,
@@ -55,7 +56,7 @@ struct JoinPoolRequest {
 
 
 
-    ////////// Contract //////////
+////////// Contract //////////
 
 contract OneUp is ERC4626 {
 
@@ -77,7 +78,8 @@ contract OneUp is ERC4626 {
     address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
-    uint256 public totalStaked;             /// @dev 
+    uint256 public totalStaked;             /// @dev Keeps track of total 1Inch tokens staked in this 
+    uint256 public poolInitialDeposit1UP;   /// @dev First 1UP deposited in pool in order to avoid double accounting
     
 
 
@@ -93,9 +95,17 @@ contract OneUp is ERC4626 {
 
     // todo: double check how "balancerLPBalance" evolves here with deposits increasing.
     function totalAssets() public view override returns (uint256) {
-        uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(this));
+        if (poolInitialized == true) {
+            (, uint256[] memory balances,) 
+            = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(balancerPool).getPoolId());
 
-        return balancerLPBalance + totalStaked;
+            uint256 contractPoolBalance = (IERC20(balancerPool).balanceOf(address(this)) * (balances[0] + balances[1])) /
+            IBalancerPool(balancerPool).getActualSupply(); 
+
+            return contractPoolBalance + totalStaked;    
+        } else {
+            return totalStaked;
+        }
 
     }
 
@@ -116,6 +126,8 @@ contract OneUp is ERC4626 {
             duration = 30 days;
         }
 
+        vaultStarted = true;
+
         uint256 shares = previewDeposit(assets);
         totalStaked += assets;
         _deposit(_msgSender(), receiver, assets, shares);
@@ -130,7 +142,7 @@ contract OneUp is ERC4626 {
         return shares;
     }
 
-    /// @notice This function will claim rewards from the delegates and provide liquidity in the Curve pool.
+    /// @notice This function will claim rewards from the delegates and provide liquidity in the Balancer pool.
     function claimRewardsFromDelegate() public {
         require(poolInitialized == true, "Make an initial deposit to the Balancer pool before claiming");
         IMultiFarmingPod(resolverFarmingPod).claim();
@@ -177,6 +189,7 @@ contract OneUp is ERC4626 {
         require(amounts[0] >= 1_000 ether && amounts[1] >= 1_000 ether, "insufficient amounts");
 
         poolInitialized = true;
+        totalStaked -= amounts[1];
 
         IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[0]);
         IERC20(address(this)).safeTransferFrom(_msgSender(), address(this), amounts[1]);
@@ -198,6 +211,5 @@ contract OneUp is ERC4626 {
         );
 
     }
-
 
 }
