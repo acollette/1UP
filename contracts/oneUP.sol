@@ -23,6 +23,18 @@ interface IMultiFarmingPod {
     function claim() external;
 }
 
+interface IBalancerPoolCreationHelper {
+    function initJoinStableSwap(
+        bytes32 poolId,
+        address poolAddress,
+        address[] memory tokenAddresses,
+        uint256[] memory weiAmountsPerToken
+    ) external;
+}
+
+interface IBalancerPool {
+    function getPoolId() external returns(bytes32);
+}
 
 
 
@@ -38,15 +50,16 @@ contract OneUp is ERC4626 {
     address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;  
     address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
+    address immutable public balancerPoolCreationHelper = 0xa289a03f46f144fAaDd9Fc51b006d7322ECc9B04;
 
-    bool public vaultStarted;         /// @dev Will be set to "true" after first deposit 
-    bool public balancerPoolSet;      /// @dev Returns "true" once the Curve Pool has been set
-    bool public initialDepositCurve;  /// @dev Set to "true" on first deposit to the Curve Pool
-    address public delegatee;         /// @dev The address of the current delegatee
-    address public balancerPool;      /// @dev The 1inch/1UP Curve Pool
-    uint256 public endTime;           /// @dev The time at which the vault balance will be unstakable
-    uint256 public lastUpdateEndTime; /// @dev The last time that "endTime" was updated
-    uint256 public totalStaked;
+    bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
+    bool public balancerPoolSet;            /// @dev Returns "true" once the Balancer Pool has been set
+    bool public poolInitialized;            /// @dev Returns "true" once initial liquidity has been provided to the pool
+    address public delegatee;               /// @dev The address of the current delegatee
+    address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
+    uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
+    uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
+    uint256 public totalStaked;             /// @dev 
     
 
 
@@ -117,26 +130,29 @@ contract OneUp is ERC4626 {
 
     }
 
-/*     function initialDepositCurvePool(uint256 amount1Inch, uint256 amount1UP) public {
-        require(initialDepositCurve == false, "Initial deposit already made");
-        require(amount1Inch >= 1_000 ether && amount1UP >= 1_000 ether, "Amount too low");
-
-        initialDepositCurve = true;
-        oneInchToken.safeTransferFrom(_msgSender(), address(this), amount1Inch);
-        transferFrom(_msgSender(), address(this), amount1UP);
-
-        uint256[2] memory amounts = [amount1Inch, amount1UP];
-        IERC20(address(oneInchToken)).safeApprove(balancerPool, amount1Inch);
-        approve(balancerPool, amount1UP);
-        ICurveBasePool(balancerPool).add_liquidity(amounts, 0);
-
-    } */
-
-    /// @notice Sets the Curve 1inch/1UP pool address for this contract, callable only once.
+    /// @notice Sets the Balancer 1inch/1UP pool address for this contract and initializes the pool with first deposit.
     function setBalancerPool(address _balancerPool) public {
         require(balancerPoolSet == false, "Curve pool already set");
 
         balancerPoolSet == true;
         balancerPool = _balancerPool;
+
     }
+
+    function initBalancerPool(uint256[] memory amounts) public {
+        require(poolInitialized == false, "Balancer pool already intialized");
+        require(amounts[0] >= 1_000 ether && amounts[1] >= 1_000 ether, "insufficient amounts");
+
+        poolInitialized = true;
+
+        IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[0]);
+        IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[1]);
+
+
+
+
+
+    }
+
+
 }

@@ -26,15 +26,36 @@ interface IComposableStablePool {
     ) external returns (address);
 }
 
+interface IBalancerVault {
+    function joinPool(
+        bytes32 poolId,
+        address sender,
+        address recipient,
+        JoinPoolRequest memory request
+    ) external payable;
+    function getPoolId() external returns(bytes32);
+}
+
 interface IMultiFarmingPod {
     function startFarming(IERC20, uint256 amount, uint256 period) external;
     function claim() external;
     function farmed(IERC20 rewardsToken, address account) external returns(uint256);
 }
 
-interface ICurveBasePool{
-    function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
-    function remove_liquidity(uint256 _amount, uint256[2] memory min_amounts) external;
+interface IBalancerPoolCreationHelper {
+    function initJoinStableSwap(
+        bytes32 poolId,
+        address poolAddress,
+        address[] memory tokenAddresses,
+        uint256[] memory weiAmountsPerToken
+    ) external;
+}
+
+struct JoinPoolRequest {
+    address[] assets;
+    uint256[] maxAmountsIn;
+    bytes userData;
+    bool fromInternalBalance;
 }
 
 contract Test_OneUP is Test {
@@ -46,6 +67,7 @@ contract Test_OneUP is Test {
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
     address balancerFactory = 0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76;
     address balancerPool;
+    address balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
     uint256 APR = 3000;     /// @dev APR in BIPS
     uint256 BIPS = 10000;   
@@ -63,17 +85,43 @@ contract Test_OneUP is Test {
         vm.stopPrank();
     } 
 
-/*     function simulateRewardsClaimed(uint256 amount) public {
+    function toBytes(address a) public pure returns (bytes memory b){
+        assembly {
+            let m := mload(0x40)
+            a := and(a, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+            mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, a))
+            mstore(0x40, add(m, 52))
+            b := m
+        }
+    }
+
+    function simulateRewardsClaimed(uint256 amount) public {
         // deal 1inch token
         deal(oneInchToken, address(OneUpContract), amount);
-        // add liquidity to Curve
-        uint256[2] memory amounts = [amount, 0];
+        // add liquidity to Balancer
+        bytes32 poolId = IBalancerVault(balancerPool).getPoolId();
+        address sender = address(OneUpContract);
+        address recipient = address(OneUpContract);
+
+        address[] memory assets = new address[](2);
+        assets[0] = oneInchToken; 
+        assets[1] = address(OneUpContract);
+        uint256[] memory maxAmountsIn = new uint256[](2);
+        maxAmountsIn[0] = amount;
+        maxAmountsIn[1] = 0;
+
+        JoinPoolRequest memory request;
+        request.assets = assets;
+        request.maxAmountsIn = maxAmountsIn;
+        request.userData = "EXACT_TOKENS_IN_FOR_BPT_OUT";
+        request.fromInternalBalance = true;
+
         vm.startPrank(address(OneUpContract));
-        IERC20(address(oneInchToken)).safeApprove(curvePool, amount);
-        ICurveBasePool(curvePool).add_liquidity(amounts, 0);
+        IERC20(address(oneInchToken)).safeApprove(balancerVault, amount);
+        IBalancerVault(balancerVault).joinPool(poolId, sender, recipient, request);
         vm.stopPrank();
 
-    } */
+    }
 
 
     ///////////// setUp //////////////
@@ -117,6 +165,25 @@ contract Test_OneUP is Test {
 
         OneUpContract.setBalancerPool(balancerPool);
 
+/*         uint256[] memory initAmounts = new uint256[](2);
+        initAmounts[0] = 1000 ether;
+        initAmounts[1] = 1000 ether;
+
+        // put initial balance of both tokens in bob wallet
+        deposit(10_000 ether);
+        deal(oneInchToken, bob, 1_000 ether);
+
+        // call setBalancerPoolAndInit => Will supply first liquidity to the pool
+        vm.startPrank(bob);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), 1_000 ether);
+        IERC20(address(OneUpContract)).safeApprove(address(OneUpContract), 1_000 ether);
+
+        OneUpContract.setBalancerPoolAndInit(balancerPool, initAmounts);
+        vm.stopPrank(); */
+
+        bytes32 ID = IBalancerVault(balancerPool).getPoolId();
+
+        emit log_named_bytes32("poolID", ID);
         emit log_named_address("Balancer Pool deployed", balancerPool);
     }
 
@@ -156,6 +223,8 @@ contract Test_OneUP is Test {
 
         emit log_named_uint("1UP token balance of Bob after", IERC20(address(OneUpContract)).balanceOf(bob));
         emit log_named_uint("1inch staked tokens of vault after", IERC20(stake1inch).balanceOf(address(OneUpContract)));
+
+        // init pool
         
     }
 
@@ -193,7 +262,7 @@ contract Test_OneUP is Test {
         uint256 APROnPeriod = (daysToClaim * APR) / 365 days;
         uint256 amountClaimable = (APROnPeriod * amountToDeposit) / BIPS; 
         emit log_named_uint("Amount claimable", amountClaimable);
-        //simulateRewardsClaimed(amountClaimable);
+        simulateRewardsClaimed(amountClaimable);
 /*         emit log_named_uint("Curve pool 1inch token balance", IERC20(curvePool).balanceOf(address(OneUpContract)));
 
         emit log_named_uint("1inch balance of vault", IERC20(oneInchToken).balanceOf(address(OneUpContract)));
