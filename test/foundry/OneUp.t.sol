@@ -33,7 +33,12 @@ interface IBalancerVault {
         address recipient,
         JoinPoolRequest memory request
     ) external payable;
-    function getPoolId() external returns(bytes32);
+    function getPoolId() external returns (bytes32);
+    function getPoolTokens(bytes32) external returns (address[] memory, uint256[] memory, uint256);
+}
+
+interface IBalancerPool {
+    function token() external returns (address);
 }
 
 interface IMultiFarmingPod {
@@ -95,26 +100,44 @@ contract Test_OneUP is Test {
         }
     }
 
+    function getBPTtokenAddress() public {
+        (address[] memory tokens, uint256[] memory balances,) = 
+        IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
+
+        emit log_array(tokens);
+        emit log_array(balances);
+    }
+
     function simulateRewardsClaimed(uint256 amount) public {
         // deal 1inch token
         deal(oneInchToken, address(OneUpContract), amount);
-        // add liquidity to Balancer
+
+        // add rewards as liquidity to Balancer
         bytes32 poolId = IBalancerVault(balancerPool).getPoolId();
         address sender = address(OneUpContract);
         address recipient = address(OneUpContract);
 
-        address[] memory assets = new address[](2);
-        assets[0] = oneInchToken; 
-        assets[1] = address(OneUpContract);
-        uint256[] memory maxAmountsIn = new uint256[](2);
-        maxAmountsIn[0] = amount;
+        (address[] memory tokens,,) = 
+        IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
+
+        uint256[] memory maxAmountsIn = new uint256[](3);
+        maxAmountsIn[0] = amount;      
+        maxAmountsIn[1] = 0;
+        maxAmountsIn[2] = 0;
+
+        uint256[] memory userDataAmounts = new uint256[](2);
+        maxAmountsIn[0] = amount;      
         maxAmountsIn[1] = 0;
 
+        assert(tokens.length == maxAmountsIn.length);
+
+        bytes memory userData = abi.encode(1, userDataAmounts, 0);
+
         JoinPoolRequest memory request;
-        request.assets = assets;
+        request.assets = tokens;
         request.maxAmountsIn = maxAmountsIn;
-        request.userData = "EXACT_TOKENS_IN_FOR_BPT_OUT";
-        request.fromInternalBalance = true;
+        request.userData = userData;
+        request.fromInternalBalance = false;
 
         vm.startPrank(address(OneUpContract));
         IERC20(address(oneInchToken)).safeApprove(balancerVault, amount);
@@ -165,12 +188,6 @@ contract Test_OneUP is Test {
 
         OneUpContract.setBalancerPool(balancerPool);
 
-        uint256 initbalancerLPBalance = IERC20(balancerPool).balanceOf(address(OneUpContract));
-        uint256 initbalancerPoolTotalSupply = IERC20(balancerPool).totalSupply();
-        emit log_named_uint("balancerLPBalance", initbalancerLPBalance);
-        emit log_named_uint("balancerPoolTotalSupply", initbalancerPoolTotalSupply);
-
-
         // Send initial liquidity to balancer pool
         uint256[] memory initAmounts = new uint256[](2);
         initAmounts[0] = 1_000 ether;
@@ -194,12 +211,8 @@ contract Test_OneUP is Test {
         emit log_named_address("Balancer Pool deployed", balancerPool);
 
         uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(OneUpContract));
-        uint256 balancerPoolTotalSupply = IERC20(balancerPool).totalSupply();
-        uint256 balancerTotalTokens = IERC20(oneInchToken).balanceOf(balancerPool) + IERC20(address(OneUpContract)).balanceOf(balancerPool);
 
         emit log_named_uint("balancerLPBalance", balancerLPBalance);
-        emit log_named_uint("balancerPoolTotalSupply", balancerPoolTotalSupply);
-        emit log_named_uint("balancerLPBalance", balancerTotalTokens);
     }
 
 
@@ -211,6 +224,13 @@ contract Test_OneUP is Test {
         assert(OneUpContract.stake1inch() == 0x9A0C8Ff858d273f57072D714bca7411D717501D7);
         assert(OneUpContract.powerPod() == 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947);
         assert(OneUpContract.vaultStarted() == false);
+
+        (address[] memory tokens, uint256[] memory balances,) = 
+        IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
+
+        emit log_array(tokens);
+        emit log_array(balances);
+        emit log_named_address("OneUpContract", address(OneUpContract));
     }
 
     function test_OneUp_deposit_state() public {
@@ -225,6 +245,8 @@ contract Test_OneUP is Test {
         emit log_named_uint("1UP token balance of Bob init", IERC20(address(OneUpContract)).balanceOf(bob));
         emit log_named_uint("1inch staked tokens of vault init", IERC20(stake1inch).balanceOf(address(OneUpContract)));
 
+        vm.warp(block.timestamp + 10 days);
+
         vm.startPrank(bob);
         IERC20(oneInchToken).safeApprove(address(OneUpContract), amount);
         OneUpContract.deposit(amount, bob);
@@ -238,15 +260,26 @@ contract Test_OneUP is Test {
 
         emit log_named_uint("1UP token balance of Bob after", IERC20(address(OneUpContract)).balanceOf(bob));
         emit log_named_uint("1inch staked tokens of vault after", IERC20(stake1inch).balanceOf(address(OneUpContract)));
+
+        uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(OneUpContract));
+
+        emit log_named_uint("balancerLPBalance", balancerLPBalance);
         
     }
 
     function test_OneUp_claimRewardsFromDelegates_state() public {
-        uint256 amountToDeposit = 100_000 ether;
+        uint256 amountToDeposit = 1_000 ether;
         uint256 daysToClaim = 100 days;
 
+        deal(address(OneUpContract.oneInchToken()), bob, amountToDeposit);
+
         // make a deposit
-        deposit(amountToDeposit);
+        vm.warp(block.timestamp + 10 days);
+
+        vm.startPrank(bob);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), amountToDeposit);
+        OneUpContract.deposit(amountToDeposit, bob);
+        vm.stopPrank();
         
         // impersonate the distributor of the farm and start reward period
         address distributor = 0x5E89f8d81C74E311458277EA1Be3d3247c7cd7D1;
@@ -259,12 +292,8 @@ contract Test_OneUP is Test {
         vm.stopPrank();
         emit log_named_uint("1inch balance farmingPod after", IERC20(oneInchToken).balanceOf(farmingPod));
 
-        //emit log_named_uint("Farmed init", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
-
         // + 100 days
         vm.warp(block.timestamp + daysToClaim);
-        deposit(amountToDeposit);
-        //emit log_named_uint("Farmed after 50 days", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
 
         // claim rewards
         //vm.startPrank(address(OneUpContract));
@@ -276,10 +305,6 @@ contract Test_OneUP is Test {
         uint256 amountClaimable = (APROnPeriod * amountToDeposit) / BIPS; 
         emit log_named_uint("Amount claimable", amountClaimable);
         simulateRewardsClaimed(amountClaimable);
-/*         emit log_named_uint("Curve pool 1inch token balance", IERC20(curvePool).balanceOf(address(OneUpContract)));
-
-        emit log_named_uint("1inch balance of vault", IERC20(oneInchToken).balanceOf(address(OneUpContract)));
-        emit log_named_uint("1inch balance of Curve Pool", IERC20(oneInchToken).balanceOf(curvePool)); */
 
     }
 

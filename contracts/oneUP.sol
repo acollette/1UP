@@ -109,7 +109,7 @@ contract OneUp is ERC4626 {
         _deposit(_msgSender(), receiver, assets, shares);
 
         // Stake tokens
-        IERC20(oneInchToken).safeApprove(stake1inch, assets);
+        IERC20(address(oneInchToken)).safeApprove(stake1inch, assets);
         ISt1inch(stake1inch).deposit(assets, duration);
 
         // Delegate UP
