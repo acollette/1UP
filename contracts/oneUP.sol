@@ -36,6 +36,10 @@ interface IBalancerPool {
     function getPoolId() external returns(bytes32);
 }
 
+interface IBalancerVault {
+    function getPoolTokens(bytes32) external returns (address[] memory, uint256[] memory, uint256);
+}
+
 
 
     ////////// Contract //////////
@@ -51,6 +55,7 @@ contract OneUp is ERC4626 {
     address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
     address immutable public balancerPoolCreationHelper = 0xa289a03f46f144fAaDd9Fc51b006d7322ECc9B04;
+    address immutable public balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
     bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
     bool public balancerPoolSet;            /// @dev Returns "true" once the Balancer Pool has been set
@@ -74,18 +79,11 @@ contract OneUp is ERC4626 {
 
     ////////// Functions //////////
 
-    // todo: double check the impact/precision of "totalOneInchTokensInCurve" calculation here.
+    // todo: double check how "balancerLPBalance" evolves here with deposits increasing.
     function totalAssets() public view override returns (uint256) {
         uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(this));
-        uint256 balancerPoolTotalSupply = IERC20(balancerPool).totalSupply();
-        uint256 balancerTotalTokens = oneInchToken.balanceOf(balancerPool) + balanceOf(balancerPool);
 
-        if (balancerPoolTotalSupply == 0) {
-            return totalStaked;
-        } else {
-            uint256 totalOneInchTokensInBalancer = (balancerLPBalance * balancerTotalTokens) / balancerPoolTotalSupply;
-            return totalOneInchTokensInBalancer + totalStaked;
-        }
+        return balancerLPBalance + totalStaked;
 
     }
 
@@ -146,7 +144,7 @@ contract OneUp is ERC4626 {
         poolInitialized = true;
 
         IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[0]);
-        transferFrom(_msgSender(), address(this), amounts[1]);
+        IERC20(address(this)).safeTransferFrom(_msgSender(), address(this), amounts[1]);
 
         address[] memory tokenAddresses = new address[](2);
         tokenAddresses[0] = address(oneInchToken);
@@ -154,11 +152,15 @@ contract OneUp is ERC4626 {
 
         bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
 
+        IERC20(address(oneInchToken)).safeApprove(balancerPoolCreationHelper, amounts[0]);
+        IERC20(address(this)).safeApprove(balancerPoolCreationHelper, amounts[1]);
+
         IBalancerPoolCreationHelper(balancerPoolCreationHelper).initJoinStableSwap(
             poolId, 
             balancerPool, 
             tokenAddresses, 
-            amounts);
+            amounts
+        );
 
     }
 

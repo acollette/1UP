@@ -165,12 +165,19 @@ contract Test_OneUP is Test {
 
         OneUpContract.setBalancerPool(balancerPool);
 
-/*         uint256[] memory initAmounts = new uint256[](2);
-        initAmounts[0] = 1000 ether;
-        initAmounts[1] = 1000 ether;
+        uint256 initbalancerLPBalance = IERC20(balancerPool).balanceOf(address(OneUpContract));
+        uint256 initbalancerPoolTotalSupply = IERC20(balancerPool).totalSupply();
+        emit log_named_uint("balancerLPBalance", initbalancerLPBalance);
+        emit log_named_uint("balancerPoolTotalSupply", initbalancerPoolTotalSupply);
+
+
+        // Send initial liquidity to balancer pool
+        uint256[] memory initAmounts = new uint256[](2);
+        initAmounts[0] = 1_000 ether;
+        initAmounts[1] = 1_000 ether;
 
         // put initial balance of both tokens in bob wallet
-        deposit(10_000 ether);
+        deposit(1_000 ether);
         deal(oneInchToken, bob, 1_000 ether);
 
         // call setBalancerPoolAndInit => Will supply first liquidity to the pool
@@ -178,13 +185,21 @@ contract Test_OneUP is Test {
         IERC20(oneInchToken).safeApprove(address(OneUpContract), 1_000 ether);
         IERC20(address(OneUpContract)).safeApprove(address(OneUpContract), 1_000 ether);
 
-        OneUpContract.setBalancerPoolAndInit(balancerPool, initAmounts);
-        vm.stopPrank(); */
+        OneUpContract.initBalancerPool(initAmounts);
+        vm.stopPrank();
 
         bytes32 ID = IBalancerVault(balancerPool).getPoolId();
 
         emit log_named_bytes32("poolID", ID);
         emit log_named_address("Balancer Pool deployed", balancerPool);
+
+        uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(OneUpContract));
+        uint256 balancerPoolTotalSupply = IERC20(balancerPool).totalSupply();
+        uint256 balancerTotalTokens = IERC20(oneInchToken).balanceOf(balancerPool) + IERC20(address(OneUpContract)).balanceOf(balancerPool);
+
+        emit log_named_uint("balancerLPBalance", balancerLPBalance);
+        emit log_named_uint("balancerPoolTotalSupply", balancerPoolTotalSupply);
+        emit log_named_uint("balancerLPBalance", balancerTotalTokens);
     }
 
 
@@ -204,8 +219,8 @@ contract Test_OneUP is Test {
         deal(address(OneUpContract.oneInchToken()), bob, amount);
 
         // pre check
-        assert(IERC20(address(OneUpContract)).balanceOf(bob) == 0);
-        assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) == 0);
+        uint256 initBalanceBob1UP = IERC20(address(OneUpContract)).balanceOf(bob);
+        uint256 initStaked1InchBob = IERC20(stake1inch).balanceOf(address(OneUpContract));
 
         emit log_named_uint("1UP token balance of Bob init", IERC20(address(OneUpContract)).balanceOf(bob));
         emit log_named_uint("1inch staked tokens of vault init", IERC20(stake1inch).balanceOf(address(OneUpContract)));
@@ -216,15 +231,13 @@ contract Test_OneUP is Test {
         vm.stopPrank();
 
         // check
-        assert(IERC20(address(OneUpContract)).balanceOf(bob) > 0);
-        assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > 0);
+        assert(IERC20(address(OneUpContract)).balanceOf(bob) > initBalanceBob1UP);
+        assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > initStaked1InchBob);
         assert(OneUpContract.endTime() == block.timestamp + 31556926);
         assert(OneUpContract.lastUpdateEndTime() == block.timestamp);
 
         emit log_named_uint("1UP token balance of Bob after", IERC20(address(OneUpContract)).balanceOf(bob));
         emit log_named_uint("1inch staked tokens of vault after", IERC20(stake1inch).balanceOf(address(OneUpContract)));
-
-        // init pool
         
     }
 
