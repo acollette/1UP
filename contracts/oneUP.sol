@@ -23,10 +23,6 @@ interface IMultiFarmingPod {
     function claim() external;
 }
 
-interface ICurveBasePool{
-    function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
-    function remove_liquidity(uint256 _amount, uint256[2] memory min_amounts) external;
-}
 
 
 
@@ -44,12 +40,14 @@ contract OneUp is ERC4626 {
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
 
     bool public vaultStarted;         /// @dev Will be set to "true" after first deposit 
-    bool public curvePoolSet;         /// @dev Returns "true" once the Curve Pool has been set
+    bool public balancerPoolSet;      /// @dev Returns "true" once the Curve Pool has been set
+    bool public initialDepositCurve;  /// @dev Set to "true" on first deposit to the Curve Pool
     address public delegatee;         /// @dev The address of the current delegatee
-    address public curvePool;         /// @dev The 1inch/1UP Curve Pool
+    address public balancerPool;      /// @dev The 1inch/1UP Curve Pool
     uint256 public endTime;           /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime; /// @dev The last time that "endTime" was updated
     uint256 public totalStaked;
+    
 
 
 
@@ -65,15 +63,15 @@ contract OneUp is ERC4626 {
 
     // todo: double check the impact/precision of "totalOneInchTokensInCurve" calculation here.
     function totalAssets() public view override returns (uint256) {
-        uint256 curveLPBalance = IERC20(curvePool).balanceOf(address(this));
-        uint256 curvePoolTotalSupply = IERC20(curvePool).totalSupply();
-        uint256 curveTotalTokens = oneInchToken.balanceOf(curvePool) + balanceOf(curvePool);
+        uint256 balancerLPBalance = IERC20(balancerPool).balanceOf(address(this));
+        uint256 balancerPoolTotalSupply = IERC20(balancerPool).totalSupply();
+        uint256 balancerTotalTokens = oneInchToken.balanceOf(balancerPool) + balanceOf(balancerPool);
 
-        if (curvePoolTotalSupply == 0) {
+        if (balancerPoolTotalSupply == 0) {
             return totalStaked;
         } else {
-            uint256 totalOneInchTokensInCurve = (curveLPBalance * curveTotalTokens) / curvePoolTotalSupply;
-            return totalOneInchTokensInCurve + totalStaked;
+            uint256 totalOneInchTokensInBalancer = (balancerLPBalance * balancerTotalTokens) / balancerPoolTotalSupply;
+            return totalOneInchTokensInBalancer + totalStaked;
         }
 
     }
@@ -111,18 +109,34 @@ contract OneUp is ERC4626 {
 
     /// @notice This function will claim rewards from the delegates and provide liquidity in the Curve pool.
     function claimRewardsFromDelegate() public {
+        //require(initialDepositCurve == true, "Make an initial deposit to the Curve pool before claiming");
         IMultiFarmingPod(resolverFarmingPod).claim();
-        uint256[2] memory amounts = [oneInchToken.balanceOf(address(this)), 0];
+        /* uint256[2] memory amounts = [oneInchToken.balanceOf(address(this)), 0];
         IERC20(address(oneInchToken)).safeApprove(curvePool, oneInchToken.balanceOf(address(this)));
-        ICurveBasePool(curvePool).add_liquidity(amounts, 0);
+        ICurveBasePool(curvePool).add_liquidity(amounts, 0); */
 
     }
 
-    /// @notice Sets the Curve 1inch/1UP pool address for this contract, callable only once.
-    function setCurvePool(address _curvePool) public {
-        require(curvePoolSet == false, "Curve pool already set");
+/*     function initialDepositCurvePool(uint256 amount1Inch, uint256 amount1UP) public {
+        require(initialDepositCurve == false, "Initial deposit already made");
+        require(amount1Inch >= 1_000 ether && amount1UP >= 1_000 ether, "Amount too low");
 
-        curvePoolSet == true;
-        curvePool = _curvePool;
+        initialDepositCurve = true;
+        oneInchToken.safeTransferFrom(_msgSender(), address(this), amount1Inch);
+        transferFrom(_msgSender(), address(this), amount1UP);
+
+        uint256[2] memory amounts = [amount1Inch, amount1UP];
+        IERC20(address(oneInchToken)).safeApprove(balancerPool, amount1Inch);
+        approve(balancerPool, amount1UP);
+        ICurveBasePool(balancerPool).add_liquidity(amounts, 0);
+
+    } */
+
+    /// @notice Sets the Curve 1inch/1UP pool address for this contract, callable only once.
+    function setBalancerPool(address _balancerPool) public {
+        require(balancerPoolSet == false, "Curve pool already set");
+
+        balancerPoolSet == true;
+        balancerPool = _balancerPool;
     }
 }

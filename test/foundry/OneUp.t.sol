@@ -11,15 +11,18 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 //import contract to test
 import {OneUp} from "../../contracts/OneUp.sol";
 
-interface ICurveFactory {
-    function deploy_plain_pool(
-        string memory _name, 
-        string memory _symbol, 
-        address[4] memory _coins, 
-        uint256 _A, 
-        uint256 _fee, 
-        uint256 _asset_type, 
-        uint256 _implementation_idx
+interface IComposableStablePool {
+    function create(
+        string memory name,
+        string memory symbol, 
+        address[] memory tokens, //
+        uint256 amplificationParameter,
+        address[] memory rateProviders, //  
+        uint256[] memory tokenRateCacheDurations,
+        bool[] memory exemptFromYieldProtocolFeeFlags,
+        uint256 swapFeePercentage,
+        address owner,
+        bytes32 salt
     ) external returns (address);
 }
 
@@ -29,6 +32,11 @@ interface IMultiFarmingPod {
     function farmed(IERC20 rewardsToken, address account) external returns(uint256);
 }
 
+interface ICurveBasePool{
+    function add_liquidity(uint256[2] memory _amounts, uint256 _min_mint_amount) external;
+    function remove_liquidity(uint256 _amount, uint256[2] memory min_amounts) external;
+}
+
 contract Test_OneUP is Test {
 
     using SafeERC20 for IERC20;
@@ -36,8 +44,11 @@ contract Test_OneUP is Test {
     address bob = 0x972eA38D8cEb5811b144AFccE5956a279E47ac46;
     address oneInchToken = 0x111111111117dC0aa78b770fA6A738034120C302;
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
-    address curveFactory = 0xB9fC157394Af804a3578134A6585C0dc9cc990d4;
-    address curvePool;
+    address balancerFactory = 0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76;
+    address balancerPool;
+
+    uint256 APR = 3000;     /// @dev APR in BIPS
+    uint256 BIPS = 10000;   
 
     OneUp OneUpContract;
 
@@ -52,23 +63,61 @@ contract Test_OneUP is Test {
         vm.stopPrank();
     } 
 
+/*     function simulateRewardsClaimed(uint256 amount) public {
+        // deal 1inch token
+        deal(oneInchToken, address(OneUpContract), amount);
+        // add liquidity to Curve
+        uint256[2] memory amounts = [amount, 0];
+        vm.startPrank(address(OneUpContract));
+        IERC20(address(oneInchToken)).safeApprove(curvePool, amount);
+        ICurveBasePool(curvePool).add_liquidity(amounts, 0);
+        vm.stopPrank();
+
+    } */
+
 
     ///////////// setUp //////////////
 
     function setUp() public {
         OneUpContract = new OneUp();
 
-        // deploy Curve Pool for 1inch/1UP tokens
-        string memory _name = "1inch/1UP";
-        string memory _symbol = "1inch-1UP";
-        address[4] memory _coins = [oneInchToken, address(OneUpContract), address(0x0), address(0x0)];
-        uint256 _A = 300;
-        uint256 _fee = 50000000; // 0.5 %
+        // deploy Balancer Pool for 1inch/1UP tokens
+        string memory name = "1inch/1UP";
+        string memory symbol = "1inch-1UP";
+        address[] memory tokens = new address[](2); //
+        tokens[0] = oneInchToken;
+        tokens[1] = address(OneUpContract);
+        uint256 amplificationParameter = 30;
+        address[] memory rateProviders = new address[](2); //
+        rateProviders[0] = address(0x0);
+        rateProviders[1] = address(0x0);
+        uint256[] memory tokenRateCacheDurations = new uint256[](2); //
+        tokenRateCacheDurations[0] = 0;
+        tokenRateCacheDurations[1] = 0;
+        bool[] memory exemptFromYieldProtocolFeeFlags = new bool[](2); //
+        exemptFromYieldProtocolFeeFlags[0] = false;
+        exemptFromYieldProtocolFeeFlags[1] = false;
+        uint256 swapFeePercentage = 2000000000000000;
+        address owner = bob;
+        bytes32 salt = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-        curvePool = ICurveFactory(curveFactory).deploy_plain_pool(_name, _symbol, _coins, _A, _fee, 3, 3); 
-        OneUpContract.setCurvePool(curvePool);
-        
-        emit log_named_address("Curve Pool deployed", curvePool);
+
+        balancerPool = IComposableStablePool(balancerFactory).create(
+            name,
+            symbol,
+            tokens, 
+            amplificationParameter, 
+            rateProviders, 
+            tokenRateCacheDurations, 
+            exemptFromYieldProtocolFeeFlags,
+            swapFeePercentage,
+            owner,
+            salt
+        );
+
+        OneUpContract.setBalancerPool(balancerPool);
+
+        emit log_named_address("Balancer Pool deployed", balancerPool);
     }
 
 
@@ -111,30 +160,44 @@ contract Test_OneUP is Test {
     }
 
     function test_OneUp_claimRewardsFromDelegates_state() public {
-        deposit(1000 ether);
+        uint256 amountToDeposit = 100_000 ether;
+        uint256 daysToClaim = 100 days;
+
+        // make a deposit
+        deposit(amountToDeposit);
         
         // impersonate the distributor of the farm and start reward period
         address distributor = 0x5E89f8d81C74E311458277EA1Be3d3247c7cd7D1;
         address farmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
         vm.startPrank(distributor);
 
+        emit log_named_uint("1inch balance farmingPod before", IERC20(oneInchToken).balanceOf(farmingPod));
         IERC20(oneInchToken).safeApprove(farmingPod, 1_000_000 ether);
         IMultiFarmingPod(farmingPod).startFarming(IERC20(oneInchToken), 1_000_000 ether, 60 days);
         vm.stopPrank();
+        emit log_named_uint("1inch balance farmingPod after", IERC20(oneInchToken).balanceOf(farmingPod));
 
-        emit log_named_uint("Farmed init", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
+        //emit log_named_uint("Farmed init", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
 
-        // + 50 days
-        vm.warp(block.timestamp + 50 days);
-        deposit(1000 ether);
-        emit log_named_uint("Farmed after 50 days", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
+        // + 100 days
+        vm.warp(block.timestamp + daysToClaim);
+        deposit(amountToDeposit);
+        //emit log_named_uint("Farmed after 50 days", IMultiFarmingPod(farmingPod).farmed(IERC20(oneInchToken), address(OneUpContract)));
 
         // claim rewards
-        vm.startPrank(address(OneUpContract));
-        IMultiFarmingPod(farmingPod).claim();
-        vm.stopPrank();
+        //vm.startPrank(address(OneUpContract));
+        //IMultiFarmingPod(farmingPod).claim();
+        //vm.stopPrank();
 
-        emit log_named_uint("1inch balance of Curve Pool", IERC20(oneInchToken).balanceOf(curvePool));
+        // simulate claiming rewards
+        uint256 APROnPeriod = (daysToClaim * APR) / 365 days;
+        uint256 amountClaimable = (APROnPeriod * amountToDeposit) / BIPS; 
+        emit log_named_uint("Amount claimable", amountClaimable);
+        //simulateRewardsClaimed(amountClaimable);
+/*         emit log_named_uint("Curve pool 1inch token balance", IERC20(curvePool).balanceOf(address(OneUpContract)));
+
+        emit log_named_uint("1inch balance of vault", IERC20(oneInchToken).balanceOf(address(OneUpContract)));
+        emit log_named_uint("1inch balance of Curve Pool", IERC20(oneInchToken).balanceOf(curvePool)); */
 
     }
 
