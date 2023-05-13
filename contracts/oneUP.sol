@@ -38,6 +38,19 @@ interface IBalancerPool {
 
 interface IBalancerVault {
     function getPoolTokens(bytes32) external returns (address[] memory, uint256[] memory, uint256);
+    function joinPool(
+        bytes32 poolId,
+        address sender,
+        address recipient,
+        JoinPoolRequest memory request
+    ) external payable;
+}
+
+struct JoinPoolRequest {
+    address[] assets;
+    uint256[] maxAmountsIn;
+    bytes userData;
+    bool fromInternalBalance;
 }
 
 
@@ -66,7 +79,6 @@ contract OneUp is ERC4626 {
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public totalStaked;             /// @dev 
     
-
 
 
     ////////// Constructor //////////
@@ -120,11 +132,34 @@ contract OneUp is ERC4626 {
 
     /// @notice This function will claim rewards from the delegates and provide liquidity in the Curve pool.
     function claimRewardsFromDelegate() public {
-        //require(initialDepositCurve == true, "Make an initial deposit to the Curve pool before claiming");
+        require(poolInitialized == true, "Make an initial deposit to the Balancer pool before claiming");
         IMultiFarmingPod(resolverFarmingPod).claim();
-        /* uint256[2] memory amounts = [oneInchToken.balanceOf(address(this)), 0];
-        IERC20(address(oneInchToken)).safeApprove(curvePool, oneInchToken.balanceOf(address(this)));
-        ICurveBasePool(curvePool).add_liquidity(amounts, 0); */
+        
+        bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
+        uint256 toDeposit = IERC20(address(oneInchToken)).balanceOf(address(this));
+
+        (address[] memory tokens,,) = 
+        IBalancerVault(balancerVault).getPoolTokens(poolId);
+
+        uint256[] memory maxAmountsIn = new uint256[](3);
+        maxAmountsIn[0] = toDeposit;      
+        maxAmountsIn[1] = 0;
+        maxAmountsIn[2] = 0;
+
+        uint256[] memory userDataAmounts = new uint256[](2);
+        maxAmountsIn[0] = toDeposit;      
+        maxAmountsIn[1] = 0;
+
+        bytes memory userData = abi.encode(1, userDataAmounts, 0);
+
+        JoinPoolRequest memory request;
+        request.assets = tokens;
+        request.maxAmountsIn = maxAmountsIn;
+        request.userData = userData;
+        request.fromInternalBalance = false;
+
+        IERC20(address(oneInchToken)).safeApprove(balancerVault, toDeposit);
+        IBalancerVault(balancerVault).joinPool(poolId, address(this), address(this), request);
 
     }
 

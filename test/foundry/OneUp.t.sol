@@ -67,7 +67,11 @@ contract Test_OneUP is Test {
 
     using SafeERC20 for IERC20;
 
+    // users
     address bob = 0x972eA38D8cEb5811b144AFccE5956a279E47ac46;
+    address alice = 0x5a29280d4668622ae19B8bd0bacE271F11Ac89dA;
+    address nico = 0x1F7673Af4859f0ACD66bB01eda90a2694Ed271DB;
+
     address oneInchToken = 0x111111111117dC0aa78b770fA6A738034120C302;
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
     address balancerFactory = 0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76;
@@ -305,6 +309,33 @@ contract Test_OneUP is Test {
         uint256 amountClaimable = (APROnPeriod * amountToDeposit) / BIPS; 
         emit log_named_uint("Amount claimable", amountClaimable);
         simulateRewardsClaimed(amountClaimable);
+
+    }
+
+    function test_fullFlow_simulation() public {
+        emit log_named_uint("Alice 1UP init balance", OneUpContract.balanceOf(alice));
+        emit log_named_uint("Nico 1UP init balance", OneUpContract.balanceOf(nico));
+
+        emit log_named_uint("Alice 1Inch init balance", IERC20(oneInchToken).balanceOf(alice));
+        emit log_named_uint("Nico 1Inch init balance", IERC20(oneInchToken).balanceOf(nico));
+
+        vm.warp(block.timestamp + 10 days);
+
+        ////////////// DAY 10 ///////////////
+        emit log_string("+10 days");
+        emit log_string("Alice makes a deposit of 1_000 1Inch tokens");
+        // Alice makes a deposit of 1_000 1Inch
+        deal(oneInchToken, alice, 1_000 ether);
+
+        vm.startPrank(alice);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), 1_000 ether);
+        OneUpContract.deposit(1_000 ether, alice);
+        vm.stopPrank();
+
+        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
+        
+
+
 
     }
 
