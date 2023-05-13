@@ -43,6 +43,12 @@ interface IBalancerVault {
         address recipient,
         JoinPoolRequest memory request
     ) external payable;
+    function exitPool(
+        bytes32 poolId,
+        address sender,
+        address recipient,
+        ExitPoolRequest memory request
+    ) external payable;
 }
 
 struct JoinPoolRequest {
@@ -50,6 +56,13 @@ struct JoinPoolRequest {
     uint256[] maxAmountsIn;
     bytes userData;
     bool fromInternalBalance;
+}
+
+struct ExitPoolRequest {
+    address[] assets;
+    uint256[] minAmountsOut;
+    bytes userData;
+    bool toInternalBalance;
 }
 
 
@@ -70,7 +83,7 @@ contract OneUp is ERC4626 {
     address immutable public balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
 
     bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
-    bool public balancerPoolSet;            /// @dev Returns "true" once the Balancer Pool has been set
+    bool public poolAddressSet;             /// @dev Returns "true" once the Balancer Pool address has been set
     bool public poolInitialized;            /// @dev Returns "true" once initial liquidity has been provided to the pool
     bool public poolEnded;                  /// @dev Pool ends when all 1inch tokens are unstaked after duration period
     address public delegatee;               /// @dev The address of the current delegatee
@@ -92,7 +105,6 @@ contract OneUp is ERC4626 {
 
     ////////// Functions //////////
 
-    // todo: double check how "balancerLPBalance" evolves here with deposits increasing.
     /// @notice Will calculate total holding of asset of this pool
     function totalAssets() public view override returns (uint256) {
         if (poolInitialized == true && poolEnded == false) {
@@ -108,10 +120,9 @@ contract OneUp is ERC4626 {
         } else {
             return totalStaked;
         }
-
     }
 
-    /// @notice Deposits 1inch tokens in the vault and mints 1UP tokens / shares.
+    /// @notice Deposits 1inch tokens in the vault, stakes 1inch, delegates UP and mints 1UP tokens / shares.
     function deposit(uint256 assets, address receiver) public override returns (uint256) {
         require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
         require(poolEnded = false, "Pool ended");
@@ -176,16 +187,14 @@ contract OneUp is ERC4626 {
 
         IERC20(address(oneInchToken)).safeApprove(balancerVault, toDeposit);
         IBalancerVault(balancerVault).joinPool(poolId, address(this), address(this), request);
-
     }
 
     /// @notice Sets the Balancer 1inch/1UP pool address for this contract and initializes the pool with first deposit.
     function setBalancerPool(address _balancerPool) public {
-        require(balancerPoolSet == false, "Curve pool already set");
+        require(poolAddressSet == false, "Curve pool already set");
 
-        balancerPoolSet == true;
+        poolAddressSet == true;
         balancerPool = _balancerPool;
-
     }
 
     /// @notice This function will initialize the Balancer pool by providing the first liquidity.
@@ -214,7 +223,6 @@ contract OneUp is ERC4626 {
             tokenAddresses, 
             amounts
         );
-
     }
 
     /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
@@ -225,12 +233,30 @@ contract OneUp is ERC4626 {
     ) public virtual override returns (uint256) {
         require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
         poolEnded = true;
+        totalStaked = 0;
 
         // Will not be callable if we still have a staked duration
         ISt1inch(stake1inch).withdraw();
 
         // remove liquidity from BalancerPool
+        (address[] memory tokens,,) 
+        = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(balancerPool).getPoolId());
+        bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
 
+        uint256[] memory minAmountsOut = new uint256[](3);
+        minAmountsOut[0] = 0;
+        minAmountsOut[1] = 0;
+        minAmountsOut[2] = 0;
+
+        bytes memory userData = abi.encode(1, IERC20(balancerPool).balanceOf(address(this)), 0);
+
+        ExitPoolRequest memory request;
+        request.assets = tokens;
+        request.minAmountsOut = minAmountsOut;
+        request.userData = userData;
+        request.toInternalBalance = false;
+
+        IBalancerVault(balancerVault).exitPool(poolId, address(this), address(this), request);
 
         uint256 shares = previewWithdraw(assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
