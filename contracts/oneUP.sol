@@ -146,11 +146,19 @@ contract OneUp is ERC4626 {
         poolInitialized = true;
 
         IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[0]);
-        IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[1]);
+        transferFrom(_msgSender(), address(this), amounts[1]);
 
+        address[] memory tokenAddresses = new address[](2);
+        tokenAddresses[0] = address(oneInchToken);
+        tokenAddresses[1] = address(this);
 
+        bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
 
-
+        IBalancerPoolCreationHelper(balancerPoolCreationHelper).initJoinStableSwap(
+            poolId, 
+            balancerPool, 
+            tokenAddresses, 
+            amounts);
 
     }
 
