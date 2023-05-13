@@ -35,6 +35,12 @@ interface IBalancerVault {
     ) external payable;
     function getPoolId() external returns (bytes32);
     function getPoolTokens(bytes32) external returns (address[] memory, uint256[] memory, uint256);
+    function swap(
+        SingleSwap memory singleSwap,
+        FundManagement memory funds,
+        uint256 limit,
+        uint256 deadline
+    ) external returns (uint256);
 }
 
 interface IBalancerPool {
@@ -61,6 +67,24 @@ struct JoinPoolRequest {
     uint256[] maxAmountsIn;
     bytes userData;
     bool fromInternalBalance;
+}
+
+enum SwapKind { GIVEN_IN, GIVEN_OUT }
+
+struct SingleSwap {
+   bytes32 poolId;
+   SwapKind kind;
+   address assetIn;
+   address assetOut;
+   uint256 amount;
+   bytes userData;
+}
+
+struct FundManagement {
+    address sender;
+    bool fromInternalBalance;
+    address payable recipient;
+    bool toInternalBalance;
 }
 
 contract Test_OneUP is Test {
@@ -157,8 +181,10 @@ contract Test_OneUP is Test {
         request.fromInternalBalance = false;
 
         vm.startPrank(address(OneUpContract));
+        emit log_named_uint("Vault 1Inch before Balance", IERC20(oneInchToken).balanceOf(address(OneUpContract)));
         IERC20(address(oneInchToken)).safeApprove(balancerVault, amount);
         IBalancerVault(balancerVault).joinPool(poolId, sender, recipient, request);
+        emit log_named_uint("Vault 1Inch after Balance", IERC20(oneInchToken).balanceOf(address(OneUpContract)));
         vm.stopPrank();
 
     }
@@ -302,11 +328,11 @@ contract Test_OneUP is Test {
         address farmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
         vm.startPrank(distributor);
 
-        emit log_named_uint("1inch balance farmingPod before", IERC20(oneInchToken).balanceOf(farmingPod));
-        IERC20(oneInchToken).safeApprove(farmingPod, 1_000_000 ether);
-        IMultiFarmingPod(farmingPod).startFarming(IERC20(oneInchToken), 1_000_000 ether, 60 days);
-        vm.stopPrank();
-        emit log_named_uint("1inch balance farmingPod after", IERC20(oneInchToken).balanceOf(farmingPod));
+        //emit log_named_uint("1inch balance farmingPod before", IERC20(oneInchToken).balanceOf(farmingPod));
+        //IERC20(oneInchToken).safeApprove(farmingPod, 1_000_000 ether);
+        //IMultiFarmingPod(farmingPod).startFarming(IERC20(oneInchToken), 1_000_000 ether, 60 days);
+        //vm.stopPrank();
+        //emit log_named_uint("1inch balance farmingPod after", IERC20(oneInchToken).balanceOf(farmingPod));
 
         // + 100 days
         vm.warp(block.timestamp + daysToClaim);
@@ -351,6 +377,8 @@ contract Test_OneUP is Test {
         emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
         emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
 
+        vm.warp(block.timestamp + 20 days);
+
         //////////// DAY 30 ///////////////////
         emit log_string("********** Day 30 **********");
         emit log_string("Nico makes a deposit of 200 1Inch tokens");
@@ -368,9 +396,51 @@ contract Test_OneUP is Test {
         emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
         emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
         emit log_named_uint("OneUpContract BPT balance", IERC20(balancerPool).balanceOf(address(OneUpContract)));
-        emit log_named_uint("Total BPT balance", IBalancerPool(balancerPool).getActualSupply());
 
+        vm.warp(block.timestamp + 70 days);
 
+        //////////// DAY 100 //////////////////////
+        emit log_string("********** Day 100 **********");
+        emit log_string("Vault will claim rewards for the first time");
+
+        uint256 daysToClaim = 100 days;     // We know this is an approximation as we should do weighted average balance for simulation
+
+        uint256 APROnPeriod = (daysToClaim * APR) / 365 days;
+        uint256 amountClaimable = (APROnPeriod * OneUpContract.totalStaked()) / BIPS; 
+        emit log_named_uint("Amount claimable", amountClaimable);
+        simulateRewardsClaimed(amountClaimable);
+
+        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
+        emit log_named_uint("Nico 1UP balance", OneUpContract.balanceOf(nico));
+        emit log_named_uint("Balancer Pool 1UP balance", getPool1UPBalance());
+        emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
+        emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
+        emit log_named_uint("OneUpContract BPT balance", IERC20(balancerPool).balanceOf(address(OneUpContract)));
+        
+        vm.warp(block.timestamp + 10 days);
+        //////////// DAY 110 //////////////////////
+        emit log_string("********** Day 110 **********");
+        emit log_string("Alice will get liquidity and swap 1UP for 1Inch in Balancer Pool");
+
+        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
+        SingleSwap memory ss;
+        ss.poolId = IBalancerVault(balancerPool).getPoolId();
+        ss.kind = SwapKind.GIVEN_IN;
+        ss.assetIn = address(OneUpContract);
+        ss.assetOut = oneInchToken;
+        ss.amount = 5 ether;
+        ss.userData = ""; 
+
+        FundManagement memory fm;
+        fm.sender = alice;
+        fm.fromInternalBalance = false;
+        fm.recipient = payable(alice);
+        fm.toInternalBalance = false;
+
+        vm.startPrank(alice);
+        IERC20(address(OneUpContract)).safeApprove(balancerVault, 5 ether);
+        IBalancerVault(balancerVault).swap(ss, fm, 0, block.timestamp);
+        vm.stopPrank;
     
     }
 

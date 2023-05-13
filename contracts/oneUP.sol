@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.17;
 
-// Uncomment this line to use console.log
-// import "hardhat/console.sol";
-
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -13,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface ISt1inch {
     function deposit(uint256 amount, uint256 duration) external;
+    function withdraw() external;
 }
 
 interface IPowerPod {
@@ -74,14 +72,15 @@ contract OneUp is ERC4626 {
     bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
     bool public balancerPoolSet;            /// @dev Returns "true" once the Balancer Pool has been set
     bool public poolInitialized;            /// @dev Returns "true" once initial liquidity has been provided to the pool
+    bool public poolEnded;                  /// @dev Pool ends when all 1inch tokens are unstaked after duration period
     address public delegatee;               /// @dev The address of the current delegatee
     address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public totalStaked;             /// @dev Keeps track of total 1Inch tokens staked in this 
     uint256 public poolInitialDeposit1UP;   /// @dev First 1UP deposited in pool in order to avoid double accounting
-    
 
+    
 
     ////////// Constructor //////////
 
@@ -94,8 +93,9 @@ contract OneUp is ERC4626 {
     ////////// Functions //////////
 
     // todo: double check how "balancerLPBalance" evolves here with deposits increasing.
+    /// @notice Will calculate total holding of asset of this pool
     function totalAssets() public view override returns (uint256) {
-        if (poolInitialized == true) {
+        if (poolInitialized == true && poolEnded == false) {
             (, uint256[] memory balances,) 
             = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(balancerPool).getPoolId());
 
@@ -103,14 +103,18 @@ contract OneUp is ERC4626 {
             IBalancerPool(balancerPool).getActualSupply(); 
 
             return contractPoolBalance + totalStaked;    
+        } else if (poolEnded == true) {
+            return oneInchToken.balanceOf(address(this));
         } else {
             return totalStaked;
         }
 
     }
 
+    /// @notice Deposits 1inch tokens in the vault and mints 1UP tokens / shares.
     function deposit(uint256 assets, address receiver) public override returns (uint256) {
         require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
+        require(poolEnded = false, "Pool ended");
 
         uint256 duration;
 
@@ -184,6 +188,7 @@ contract OneUp is ERC4626 {
 
     }
 
+    /// @notice This function will initialize the Balancer pool by providing the first liquidity.
     function initBalancerPool(uint256[] memory amounts) public {
         require(poolInitialized == false, "Balancer pool already intialized");
         require(amounts[0] >= 1_000 ether && amounts[1] >= 1_000 ether, "insufficient amounts");
@@ -210,6 +215,27 @@ contract OneUp is ERC4626 {
             amounts
         );
 
+    }
+
+    /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
+    function withdraw(
+        uint256 assets,
+        address receiver,
+        address owner
+    ) public virtual override returns (uint256) {
+        require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
+        poolEnded = true;
+
+        // Will not be callable if we still have a staked duration
+        ISt1inch(stake1inch).withdraw();
+
+        // remove liquidity from BalancerPool
+
+
+        uint256 shares = previewWithdraw(assets);
+        _withdraw(_msgSender(), receiver, owner, assets, shares);
+
+        return shares;
     }
 
 }
