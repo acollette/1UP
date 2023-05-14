@@ -232,31 +232,36 @@ contract OneUp is ERC4626 {
         address owner
     ) public virtual override returns (uint256) {
         require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
-        poolEnded = true;
-        totalStaked = 0;
 
-        // Will not be callable if we still have a staked duration
-        ISt1inch(stake1inch).withdraw();
+        if (poolEnded == false) {
+            // Will not be callable if we still have a staked duration
+            ISt1inch(stake1inch).withdraw();
+            
+            totalStaked = 0;
 
-        // remove liquidity from BalancerPool
-        (address[] memory tokens,,) 
-        = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(balancerPool).getPoolId());
-        bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
+            // remove liquidity from BalancerPool
+            (address[] memory tokens,,) 
+            = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(balancerPool).getPoolId());
+            bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
 
-        uint256[] memory minAmountsOut = new uint256[](3);
-        minAmountsOut[0] = 0;
-        minAmountsOut[1] = 0;
-        minAmountsOut[2] = 0;
+            uint256[] memory minAmountsOut = new uint256[](3);
+            minAmountsOut[0] = 0;
+            minAmountsOut[1] = 0;
+            minAmountsOut[2] = 0;
 
-        bytes memory userData = abi.encode(1, IERC20(balancerPool).balanceOf(address(this)), 0);
+            bytes memory userData = abi.encode(1, IERC20(balancerPool).balanceOf(address(this)), 0);
 
-        ExitPoolRequest memory request;
-        request.assets = tokens;
-        request.minAmountsOut = minAmountsOut;
-        request.userData = userData;
-        request.toInternalBalance = false;
+            ExitPoolRequest memory request;
+            request.assets = tokens;
+            request.minAmountsOut = minAmountsOut;
+            request.userData = userData;
+            request.toInternalBalance = false;
 
-        IBalancerVault(balancerVault).exitPool(poolId, address(this), address(this), request);
+            IBalancerVault(balancerVault).exitPool(poolId, address(this), address(this), request);
+
+            poolEnded = true;
+
+        }
 
         uint256 shares = previewWithdraw(assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);

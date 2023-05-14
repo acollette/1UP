@@ -441,7 +441,6 @@ contract Test_OneUP is Test {
         IERC20(address(OneUpContract)).safeApprove(balancerVault, 5 ether);
         IBalancerVault(balancerVault).swap(ss, fm, 0, block.timestamp);
         vm.stopPrank;
-    
     }
 
 }
