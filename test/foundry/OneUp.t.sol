@@ -167,8 +167,8 @@ contract Test_OneUP is Test {
         maxAmountsIn[2] = 0;
 
         uint256[] memory userDataAmounts = new uint256[](2);
-        maxAmountsIn[0] = amount;      
-        maxAmountsIn[1] = 0;
+        userDataAmounts[0] = amount;      
+        userDataAmounts[1] = 0;
 
         assert(tokens.length == maxAmountsIn.length);
 
