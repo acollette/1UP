@@ -174,8 +174,8 @@ contract OneUp is ERC4626 {
         maxAmountsIn[2] = 0;
 
         uint256[] memory userDataAmounts = new uint256[](2);
-        maxAmountsIn[0] = toDeposit;      
-        maxAmountsIn[1] = 0;
+        userDataAmounts[0] = toDeposit;      
+        userDataAmounts[1] = 0;
 
         bytes memory userData = abi.encode(1, userDataAmounts, 0);
 
