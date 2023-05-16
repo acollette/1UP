@@ -125,7 +125,7 @@ contract OneUp is ERC4626 {
     /// @notice Deposits 1inch tokens in the vault, stakes 1inch, delegates UP and mints 1UP tokens / shares.
     function deposit(uint256 assets, address receiver) public override returns (uint256) {
         require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
-        require(poolEnded = false, "Pool ended");
+        require(poolEnded == false, "Pool ended");
 
         uint256 duration;
 
