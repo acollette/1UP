@@ -51,6 +51,7 @@ interface IBalancerVault {
     ) external payable;
 }
 
+/// @dev The struct to provide to the Balancer contract call JoinPool().
 struct JoinPoolRequest {
     address[] assets;
     uint256[] maxAmountsIn;
@@ -58,6 +59,7 @@ struct JoinPoolRequest {
     bool fromInternalBalance;
 }
 
+/// @dev The struct to provide to the Balancer contract call ExitPool().
 struct ExitPoolRequest {
     address[] assets;
     uint256[] minAmountsOut;
@@ -92,8 +94,8 @@ contract OneUp is ERC4626 {
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public totalStaked;             /// @dev Keeps track of total 1Inch tokens staked in this 
     uint256 public poolInitialDeposit1UP;   /// @dev First 1UP deposited in pool in order to avoid double accounting
-
     
+
 
     ////////// Constructor //////////
 
@@ -123,7 +125,10 @@ contract OneUp is ERC4626 {
     }
 
     /// @notice Deposits 1inch tokens in the vault, stakes 1inch, delegates UP and mints 1UP tokens / shares.
-    function deposit(uint256 assets, address receiver) public override returns (uint256) {
+    /// @param assets The amount of assets to deposit.
+    /// @param receiver The address that will receive the minted shares.
+    /// @return shares The number of shares that have been minted.
+    function deposit(uint256 assets, address receiver) public override returns (uint256 shares) {
         require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
         require(poolEnded == false, "Pool ended");
 
@@ -143,7 +148,7 @@ contract OneUp is ERC4626 {
 
         vaultStarted = true;
 
-        uint256 shares = previewDeposit(assets);
+        shares = previewDeposit(assets);
         totalStaked += assets;
         _deposit(_msgSender(), receiver, assets, shares);
 
@@ -190,14 +195,16 @@ contract OneUp is ERC4626 {
     }
 
     /// @notice Sets the Balancer 1inch/1UP pool address for this contract and initializes the pool with first deposit.
+    /// @param _balancerPool The address of the Balancer pool linked to this contract.
     function setBalancerPool(address _balancerPool) public {
-        require(poolAddressSet == false, "Curve pool already set");
+        require(poolAddressSet == false, "Balancer pool already set");
 
         poolAddressSet == true;
         balancerPool = _balancerPool;
     }
 
     /// @notice This function will initialize the Balancer pool by providing the first liquidity.
+    /// @param amounts The amount of each token to add for the initialization of the Balancer pool.
     function initBalancerPool(uint256[] memory amounts) public {
         require(poolInitialized == false, "Balancer pool already intialized");
         require(amounts[0] >= 1_000 ether && amounts[1] >= 1_000 ether, "insufficient amounts");
@@ -226,11 +233,15 @@ contract OneUp is ERC4626 {
     }
 
     /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
+    /// @param assets The amount of the asset to withdraw. 
+    /// @param receiver The address receiving the assets.
+    /// @param owner The address requesting the withdrawal. 
+    /// @return shares The amount of shares that are burned.
     function withdraw(
         uint256 assets,
         address receiver,
         address owner
-    ) public virtual override returns (uint256) {
+    ) public virtual override returns (uint256 shares) {
         require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
 
         if (poolEnded == false) {
@@ -263,7 +274,7 @@ contract OneUp is ERC4626 {
 
         }
 
-        uint256 shares = previewWithdraw(assets);
+        shares = previewWithdraw(assets);
         _withdraw(_msgSender(), receiver, owner, assets, shares);
 
         return shares;
