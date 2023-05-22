@@ -51,6 +51,13 @@ interface IBalancerVault {
     ) external payable;
 }
 
+interface IMultiRewards {
+    function addReward(address, address, uint256) external;
+    function notifyRewardAmount(address _rewardsToken, uint256 reward) external;
+    function stake(uint256 amount) external;
+    function stakeFor(uint256 amount, address account) external;
+}
+
 /// @dev The struct to provide to the Balancer contract call JoinPool().
 struct JoinPoolRequest {
     address[] assets;
@@ -83,6 +90,7 @@ contract OneUpV2 is ERC20 {
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
     address immutable public balancerPoolCreationHelper = 0xa289a03f46f144fAaDd9Fc51b006d7322ECc9B04;
     address immutable public balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+    
 
     bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
     bool public poolAddressSet;             /// @dev Returns "true" once the Balancer Pool address has been set
@@ -90,6 +98,7 @@ contract OneUpV2 is ERC20 {
     bool public poolEnded;                  /// @dev Pool ends when all 1inch tokens are unstaked after duration period
     address public delegatee;               /// @dev The address of the current delegatee
     address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
+    address public stakingContract;
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public totalStaked;             /// @dev Keeps track of total 1Inch tokens staked in this 
@@ -100,7 +109,7 @@ contract OneUpV2 is ERC20 {
     ////////// Constructor //////////
 
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-
+        
     }
 
 
@@ -110,42 +119,41 @@ contract OneUpV2 is ERC20 {
     /// @notice Deposits 1inch tokens in the vault, stakes 1inch, delegates UP and mints 1UP tokens / shares.
     /// @param amount The amount of assets to deposit.
     /// @return shares The number of shares that have been minted.
-    function deposit(uint256 amount) public override returns (uint256 shares) {
+    function deposit(uint256 amount, bool stake) public {
         require(poolEnded == false, "Pool ended");
 
         uint256 duration;
 
         // We set the starting values for the duration as well as initial delegatee
+        // TODO: transfer part of variables to constructor
         if (vaultStarted == false) {
             duration = 31556926; // 1 year
             delegatee = 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A;
             endTime = block.timestamp + 31556926; // time at which vault balance will be unstakable
             lastUpdateEndTime = block.timestamp; 
+            vaultStarted = true;
         } else if (block.timestamp > lastUpdateEndTime + 30 days) {
             endTime += 30 days;
             lastUpdateEndTime = block.timestamp;
             duration = 30 days;
         }
 
-        vaultStarted = true;
-
         // Deposit 1inch tokens
         oneInchToken.safeTransferFrom(_msgSender(), address(this), amount);
 
         // Mint 1UP tokens on 1:1 basis
-        _mint(address(this), amount);
+        _mint(stake == true ? address(this) : _msgSender(), amount);
 
         // Stake tokens
         oneInchToken.safeApprove(stake1inch, amount);
         ISt1inch(stake1inch).deposit(amount, duration);
 
-        // Stake for account in rewards
-        
+        // Stake for account in rewards contract
+        if (stake == true) { IMultiRewards(stakingContract).stakeFor(amount, _msgSender()); }
 
         // Delegate UP
         IPowerPod(powerPod).delegate(delegatee);
 
-        return shares;
     }
 
     /// @notice This function will claim rewards from the delegates and provide liquidity in the Balancer pool.
@@ -156,27 +164,7 @@ contract OneUpV2 is ERC20 {
         bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
         uint256 toDeposit = IERC20(address(oneInchToken)).balanceOf(address(this));
 
-        (address[] memory tokens,,) = 
-        IBalancerVault(balancerVault).getPoolTokens(poolId);
-
-        uint256[] memory maxAmountsIn = new uint256[](3);
-        maxAmountsIn[0] = toDeposit;      
-        maxAmountsIn[1] = 0;
-        maxAmountsIn[2] = 0;
-
-        uint256[] memory userDataAmounts = new uint256[](2);
-        userDataAmounts[0] = toDeposit;      
-        userDataAmounts[1] = 0;
-
-        bytes memory userData = abi.encode(1, userDataAmounts, 0);
-
-        JoinPoolRequest memory request;
-        request.assets = tokens;
-        request.maxAmountsIn = maxAmountsIn;
-        request.userData = userData;
-        request.fromInternalBalance = false;
-
-        IERC20(address(oneInchToken)).safeApprove(balancerVault, toDeposit);
+        IERC20(address(oneInchToken)).safeApprove(stakingContract, toDeposit);
         IBalancerVault(balancerVault).joinPool(poolId, address(this), address(this), request);
     }
 
@@ -196,7 +184,6 @@ contract OneUpV2 is ERC20 {
         require(amounts[0] >= 1_000 ether && amounts[1] >= 1_000 ether, "insufficient amounts");
 
         poolInitialized = true;
-        totalStaked -= amounts[1];
 
         IERC20(address(oneInchToken)).safeTransferFrom(_msgSender(), address(this), amounts[0]);
         IERC20(address(this)).safeTransferFrom(_msgSender(), address(this), amounts[1]);

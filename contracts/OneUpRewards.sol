@@ -39,7 +39,6 @@ contract OneUpMultiRewards is ReentrancyGuard, Ownable {
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        address _owner,
         address _stakingToken
     ) public Ownable() {
         stakingToken = IERC20(_stakingToken);
@@ -157,7 +156,7 @@ contract OneUpMultiRewards is ReentrancyGuard, Ownable {
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
         require(tokenAddress != address(stakingToken), "Cannot withdraw staking token");
         require(rewardData[tokenAddress].lastUpdateTime == 0, "Cannot withdraw reward token");
-        IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
+        IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
     }
 
