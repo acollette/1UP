@@ -45,7 +45,7 @@ contract OneUpV2 is ERC20 {
     
 
     bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
-    bool public vaultEnded;                  /// @dev Vault ends when all 1inch tokens are unstaked after duration period
+    bool public vaultEnded;                 /// @dev Vault ends when all 1inch tokens are unstaked after duration period
     address public delegatee;               /// @dev The address of the current delegatee
     address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
     address public stakingContract;
