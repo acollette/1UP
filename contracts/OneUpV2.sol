@@ -68,7 +68,7 @@ contract OneUpV2 is ERC20 {
 
     /// @notice Deposits 1inch tokens in the vault, stakes 1inch, delegates UP and mints 1UP tokens / shares.
     /// @param amount The amount of assets to deposit.
-    /// @return shares The number of shares that have been minted.
+    /// @param stake If "true" will automatically stake the ERC20 token to accumulate rewards.
     function deposit(uint256 amount, bool stake) public {
         require(vaultEnded == false, "Vault ended");
 
@@ -119,51 +119,24 @@ contract OneUpV2 is ERC20 {
 
 
     /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
-    /// @param assets The amount of the asset to withdraw. 
-    /// @param receiver The address receiving the assets.
-    /// @param owner The address requesting the withdrawal. 
-    /// @return shares The amount of shares that are burned.
-    function withdraw(
-        uint256 assets,
-        address receiver,
-        address owner
-    ) public virtual override returns (uint256 shares) {
-        require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
+    function withdraw() external {
+        require(block.timestamp > endTime, "pool not ended");
 
-        if (poolEnded == false) {
+        uint256 amountWithdrawable;
+        
+        if (vaultEnded == false) {
             // Will not be callable if we still have a staked duration
             ISt1inch(stake1inch).withdraw();
-            
-            totalStaked = 0;
+            amountWithdrawable = balanceOf(_msgSender());
+            _burn(_msgSender(), balanceOf(_msgSender()));
+            oneInchToken.safeTransfer(_msgSender(), amountWithdrawable);
 
-            // remove liquidity from BalancerPool
-            (address[] memory tokens,,) 
-            = IBalancerVault(balancerVault).getPoolTokens(IBalancerPool(balancerPool).getPoolId());
-            bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
+            vaultEnded = true;
 
-            uint256[] memory minAmountsOut = new uint256[](3);
-            minAmountsOut[0] = 0;
-            minAmountsOut[1] = 0;
-            minAmountsOut[2] = 0;
-
-            bytes memory userData = abi.encode(1, IERC20(balancerPool).balanceOf(address(this)), 0);
-
-            ExitPoolRequest memory request;
-            request.assets = tokens;
-            request.minAmountsOut = minAmountsOut;
-            request.userData = userData;
-            request.toInternalBalance = false;
-
-            IBalancerVault(balancerVault).exitPool(poolId, address(this), address(this), request);
-
-            poolEnded = true;
-
+        } else {
+            amountWithdrawable = balanceOf(_msgSender());
+            _burn(_msgSender(), balanceOf(_msgSender()));
+            oneInchToken.safeTransfer(_msgSender(), amountWithdrawable);
         }
-
-        shares = previewWithdraw(assets);
-        _withdraw(_msgSender(), receiver, owner, assets, shares);
-
-        return shares;
     }
-
 }
