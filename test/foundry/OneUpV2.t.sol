@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 //import contract to test
 import {OneUpV2} from "../../contracts/OneUpV2.sol";
+import {OneUpMultiRewards} from "../../contracts/OneUpRewards.sol";
 
 interface IComposableStablePool {
     function create(
@@ -70,8 +71,6 @@ struct JoinPoolRequest {
     bool fromInternalBalance;
 }
 
-enum SwapKind { GIVEN_IN, GIVEN_OUT }
-
 struct SingleSwap {
    bytes32 poolId;
    SwapKind kind;
@@ -88,6 +87,9 @@ struct FundManagement {
     bool toInternalBalance;
 }
 
+enum SwapKind { GIVEN_IN, GIVEN_OUT }
+
+
 contract Test_OneUpV2 is Test {
 
     using SafeERC20 for IERC20;
@@ -100,11 +102,12 @@ contract Test_OneUpV2 is Test {
     address oneInchToken = 0x111111111117dC0aa78b770fA6A738034120C302;
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
     address balancerFactory = 0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76;
-    address balancerPool;
     address balancerPoolCreationHelper = 0xa289a03f46f144fAaDd9Fc51b006d7322ECc9B04;
     address balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+    address balancerPool;
 
-    OneUp OneUpContract;
+    OneUpV2 OneUpContract;
+    OneUpMultiRewards OneUpStaking;
 
     ///////////// Helper Functions //////////////
 
@@ -153,7 +156,9 @@ contract Test_OneUpV2 is Test {
     ///////////// setUp //////////////
 
     function setUp() public {
-        OneUpContract = new OneUp("OneUp", "1UP");
+        // Declare contract instances
+        OneUpContract = new OneUpV2("OneUp", "1UP");
+        OneUpStaking = new OneUpMultiRewards(address(OneUpContract));
 
         // deploy Balancer Pool for 1inch/1UP tokens
         string memory name = "1Inch/1UP";
@@ -188,8 +193,6 @@ contract Test_OneUpV2 is Test {
             owner,
             salt
         );
-
-        OneUpContract.setBalancerPool(balancerPool);
 
         // Send initial liquidity to balancer pool
         uint256[] memory initAmounts = new uint256[](2);

@@ -59,8 +59,18 @@ contract OneUpV2 is ERC20 {
 
     ////////// Constructor //////////
 
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-        
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint256 _duration,
+        address _delegatee
+    ) 
+        ERC20(_name, _symbol)
+    {
+        duration = _duration;
+        delegatee = _delegatee;
+        endTime = block.timestamp + duration;
+        lastUpdateEndTime = block.timestamp; 
     }
 
 
@@ -75,15 +85,7 @@ contract OneUpV2 is ERC20 {
 
         uint256 duration;
 
-        // We set the starting values for the duration as well as initial delegatee
-        // TODO: transfer part of variables to constructor
-        if (vaultStarted == false) {
-            duration = 31556926; // 1 year
-            delegatee = 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A;
-            endTime = block.timestamp + 31556926; // time at which vault balance will be unstakable
-            lastUpdateEndTime = block.timestamp; 
-            vaultStarted = true;
-        } else if (block.timestamp > lastUpdateEndTime + 30 days) {
+        if (block.timestamp > lastUpdateEndTime + 30 days) {
             endTime += 30 days;
             lastUpdateEndTime = block.timestamp;
             duration = 30 days;
@@ -108,8 +110,6 @@ contract OneUpV2 is ERC20 {
     }
 
     /// @notice This function will claim rewards from the delegates and add the rewards to the staking contract
-    /// TODO: when pool is closed not able to call fct anymore.
-    /// TODO: add a earned fct to view rewards claimable
     function claimRewardsFromDelegate() public {
         IMultiFarmingPod(resolverFarmingPod).claim();
         uint256 toDeposit = oneInchToken.balanceOf(address(this));

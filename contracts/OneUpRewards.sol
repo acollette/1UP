@@ -38,9 +38,7 @@ contract OneUpMultiRewards is ReentrancyGuard, Ownable {
 
     /* ========== CONSTRUCTOR ========== */
 
-    constructor(
-        address _stakingToken
-    ) public Ownable() {
+    constructor(address _stakingToken) Ownable() {
         stakingToken = IERC20(_stakingToken);
         transferOwnership(_stakingToken);
     }
