@@ -160,6 +160,8 @@ contract Test_OneUpV2 is Test {
         OneUpContract = new OneUpV2("OneUp", "1UP", 31556926, 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A);
         OneUpStaking = new OneUpMultiRewards(address(OneUpContract));
 
+        assert(OneUpContract.firstDeposit() == true);
+
         // deploy Balancer Pool for 1inch/1UP tokens
         string memory name = "1Inch/1UP";
         string memory symbol = "1inch-1UP";
@@ -243,6 +245,7 @@ contract Test_OneUpV2 is Test {
 
         assert(address(OneUpStaking.stakingToken()) == address(OneUpContract));
 
+        assert(OneUpContract.firstDeposit() == false); // As first deposit has been made in setUp()
         assert(OneUpContract.vaultEnded() == false);
         assert(OneUpContract.delegatee() == 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A);
         assert(OneUpContract.endTime() == block.timestamp + OneUpContract.duration());
