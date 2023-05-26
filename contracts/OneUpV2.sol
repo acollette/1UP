@@ -46,9 +46,10 @@ contract OneUpV2 is ERC20 {
 
     bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
     bool public vaultEnded;                 /// @dev Vault ends when all 1inch tokens are unstaked after duration period
+    bool public stakingActivated;           /// @dev Returns "true" when the staking contract has been initialized
     address public delegatee;               /// @dev The address of the current delegatee
     address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
-    address public stakingContract;
+    address public stakingContract;         /// @dev The staking contract where all rewards from staking will be deposited
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public totalStaked;             /// @dev Keeps track of total 1Inch tokens staked in this 
@@ -116,8 +117,6 @@ contract OneUpV2 is ERC20 {
         IMultiRewards(stakingContract).notifyRewardAmount(address(oneInchToken), toDeposit);
     }
 
-
-
     /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
     function withdraw() external {
         require(block.timestamp > endTime, "pool not ended");
@@ -139,4 +138,12 @@ contract OneUpV2 is ERC20 {
             oneInchToken.safeTransfer(_msgSender(), amountWithdrawable);
         }
     }
+
+    /// @notice This function sets the staking contract.
+    function setStakingContract(address _stakingContract) public {
+        require(stakingActivated == false, "staking contract already set");
+        stakingActivated = true;
+        stakingContract = _stakingContract;
+    }
+
 }
