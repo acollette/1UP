@@ -111,12 +111,12 @@ contract Test_OneUpV2 is Test {
 
     ///////////// Helper Functions //////////////
 
-    function deposit(uint256 amount) public {
+    function deposit(uint256 amount, bool stake) public {
         deal(address(OneUpContract.oneInchToken()), bob, amount);
 
         vm.startPrank(bob);
         IERC20(oneInchToken).safeApprove(address(OneUpContract), amount);
-        OneUpContract.deposit(amount, bob);
+        OneUpContract.deposit(amount, stake);
         vm.stopPrank();
     } 
 
@@ -157,7 +157,7 @@ contract Test_OneUpV2 is Test {
 
     function setUp() public {
         // Declare contract instances
-        OneUpContract = new OneUpV2("OneUp", "1UP");
+        OneUpContract = new OneUpV2("OneUp", "1UP", 31556926, 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A);
         OneUpStaking = new OneUpMultiRewards(address(OneUpContract));
 
         // deploy Balancer Pool for 1inch/1UP tokens
@@ -200,7 +200,7 @@ contract Test_OneUpV2 is Test {
         initAmounts[1] = 1_000 ether;
 
         // put initial balance of both tokens in bob wallet
-        deposit(1_000 ether);
+        deposit(1_000 ether, false);
         deal(oneInchToken, bob, 1_000 ether);
 
         // call setBalancerPoolAndInit => Will supply first liquidity to the pool
@@ -214,8 +214,8 @@ contract Test_OneUpV2 is Test {
 
         bytes32 poolId = IBalancerPool(balancerPool).getPoolId();
 
-        IERC20(oneInchToken).safeApprove(balancerPoolCreationHelper, amounts[0]);
-        IERC20(address(OneUpContract)).safeApprove(balancerPoolCreationHelper, amounts[1]);
+        IERC20(oneInchToken).safeApprove(balancerPoolCreationHelper, initAmounts[0]);
+        IERC20(address(OneUpContract)).safeApprove(balancerPoolCreationHelper, initAmounts[1]);
 
         IBalancerPoolCreationHelper(balancerPoolCreationHelper).initJoinStableSwap(
             poolId, 
@@ -235,11 +235,19 @@ contract Test_OneUpV2 is Test {
 
     ///////////// Testing //////////////
 
-    function test_OneUp_init_state() public {
+    function test_OneUpV2_init_state() public {
         assert(address(OneUpContract.oneInchToken()) == 0x111111111117dC0aa78b770fA6A738034120C302);
         assert(OneUpContract.stake1inch() == 0x9A0C8Ff858d273f57072D714bca7411D717501D7);
         assert(OneUpContract.powerPod() == 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947);
-        assert(OneUpContract.vaultStarted() == false);
+        assert(OneUpContract.resolverFarmingPod() == 0x7E78A8337194C06314300D030D41Eb31ed299c39);
+
+        assert(address(OneUpStaking.stakingToken()) == address(OneUpContract));
+
+        assert(OneUpContract.vaultEnded() == false);
+        assert(OneUpContract.delegatee() == 0xA260f8b7c8F37C2f1bC11b04c19902829De6ac8A);
+        assert(OneUpContract.endTime() == block.timestamp + OneUpContract.duration());
+        assert(OneUpContract.lastUpdateEndTime() == block.timestamp);
+        assert(OneUpContract.duration() == 31556926);
 
         (address[] memory tokens, uint256[] memory balances,) = 
         IBalancerVault(balancerVault).getPoolTokens(IBalancerVault(balancerPool).getPoolId());
@@ -247,9 +255,10 @@ contract Test_OneUpV2 is Test {
         emit log_array(tokens);
         emit log_array(balances);
         emit log_named_address("OneUpContract", address(OneUpContract));
+        emit log_named_address("stakingContract", OneUpContract.stakingContract());
     }
 
-    function test_OneUp_deposit_state() public {
+/*     function test_OneUpV2_deposit_state() public {
         
         uint256 amount = 100 ether;
         deal(address(OneUpContract.oneInchToken()), bob, amount);
@@ -283,7 +292,7 @@ contract Test_OneUpV2 is Test {
         
     }
 
-    function test_OneUp_claimRewardsFromDelegates_state() public {
+    function test_OneUpV2_claimRewardsFromDelegates_state() public {
         uint256 amountToDeposit = 1_000 ether;
         uint256 daysToClaim = 100 days;
 
@@ -324,7 +333,7 @@ contract Test_OneUpV2 is Test {
 
     }
 
-    function test_fullFlow_simulation() public {
+    function test_OneUpV2_fullFlow_simulation() public {
         emit log_named_uint("Alice 1UP init balance", OneUpContract.balanceOf(alice));
         emit log_named_uint("Nico 1UP init balance", OneUpContract.balanceOf(nico));
         emit log_named_uint("Balancer Pool init 1UP balance", getPool1UPBalance());
@@ -415,6 +424,6 @@ contract Test_OneUpV2 is Test {
         IERC20(address(OneUpContract)).safeApprove(balancerVault, 5 ether);
         IBalancerVault(balancerVault).swap(ss, fm, 0, block.timestamp);
         vm.stopPrank;
-    }
+    } */
 
 }

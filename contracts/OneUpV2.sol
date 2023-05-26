@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {OneUpMultiRewards} from "../contracts/OneUpRewards.sol";
 
 ////////// Interfaces //////////
 
@@ -42,18 +43,14 @@ contract OneUpV2 is ERC20 {
     address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;  
     address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
-    
 
-    bool public vaultStarted;               /// @dev Will be set to "true" after first deposit 
+    bool public firstDeposit = true;        /// @dev Returns "false" after the first deposit has been made
     bool public vaultEnded;                 /// @dev Vault ends when all 1inch tokens are unstaked after duration period
-    bool public stakingActivated;           /// @dev Returns "true" when the staking contract has been initialized
+    address public stakingContract;         /// @dev The address of the staking contract where all rewards from 1inch staking will be sent
     address public delegatee;               /// @dev The address of the current delegatee
-    address public balancerPool;            /// @dev The 1inch/1UP Curve Pool
-    address public stakingContract;         /// @dev The staking contract where all rewards from staking will be deposited
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
-    uint256 public totalStaked;             /// @dev Keeps track of total 1Inch tokens staked in this 
-    uint256 public poolInitialDeposit1UP;   /// @dev First 1UP deposited in pool in order to avoid double accounting
+    uint256 public duration;                /// @dev Staking duration in Unix
     
 
 
@@ -71,24 +68,31 @@ contract OneUpV2 is ERC20 {
         delegatee = _delegatee;
         endTime = block.timestamp + duration;
         lastUpdateEndTime = block.timestamp; 
+        stakingContract = address(new OneUpMultiRewards(address(this)));
     }
 
 
 
     ////////// Functions //////////
-
+    
     /// @notice Deposits 1inch tokens in the vault, stakes 1inch, delegates UP and mints 1UP tokens / shares.
     /// @param amount The amount of assets to deposit.
     /// @param stake If "true" will automatically stake the ERC20 token to accumulate rewards.
+    /// TODO: What if first deposit done after 30 days ?
     function deposit(uint256 amount, bool stake) public {
         require(vaultEnded == false, "Vault ended");
 
-        uint256 duration;
+        uint256 durationExtension;
+
+        if (firstDeposit == true) {
+            durationExtension = duration;
+            firstDeposit = false;
+        }
 
         if (block.timestamp > lastUpdateEndTime + 30 days) {
             endTime += 30 days;
             lastUpdateEndTime = block.timestamp;
-            duration = 30 days;
+            durationExtension = 30 days;
         }
 
         // Deposit 1inch tokens
@@ -99,7 +103,7 @@ contract OneUpV2 is ERC20 {
 
         // Stake tokens
         oneInchToken.safeApprove(stake1inch, amount);
-        ISt1inch(stake1inch).deposit(amount, duration);
+        ISt1inch(stake1inch).deposit(amount, durationExtension);
 
         // Stake for account in rewards contract
         if (stake == true) { IMultiRewards(stakingContract).stakeFor(amount, _msgSender()); }
@@ -139,11 +143,11 @@ contract OneUpV2 is ERC20 {
         }
     }
 
-    /// @notice This function sets the staking contract.
+/*     /// @notice This function sets the staking contract.
     function setStakingContract(address _stakingContract) public {
         require(stakingActivated == false, "staking contract already set");
         stakingActivated = true;
         stakingContract = _stakingContract;
-    }
+    } */
 
 }

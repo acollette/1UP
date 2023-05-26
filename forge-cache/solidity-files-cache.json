@@ -82,8 +82,8 @@
       }
     },
     "contracts/OneUpRewards.sol": {
-      "lastModificationDate": 1684749613094,
-      "contentHash": "7f4c4f24f41dd321d5a857731838551f",
+      "lastModificationDate": 1685089591086,
+      "contentHash": "b56f99e479da0ad2f00fdf11926fe53e",
       "sourceName": "contracts/OneUpRewards.sol",
       "solcConfig": {
         "settings": {
@@ -132,8 +132,8 @@
       }
     },
     "contracts/OneUpV2.sol": {
-      "lastModificationDate": 1684851710880,
-      "contentHash": "035b8cade4e49f08355a06fa2808d2de",
+      "lastModificationDate": 1685092962549,
+      "contentHash": "f8ee37e32c07430368b32b1633052cfb",
       "sourceName": "contracts/OneUpV2.sol",
       "solcConfig": {
         "settings": {
@@ -164,13 +164,18 @@
         }
       },
       "imports": [
+        "contracts/OneUpRewards.sol",
+        "node_modules/@openzeppelin/contracts/access/Ownable.sol",
+        "node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol",
         "node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol",
         "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol",
         "node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
         "node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol",
         "node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
         "node_modules/@openzeppelin/contracts/utils/Address.sol",
-        "node_modules/@openzeppelin/contracts/utils/Context.sol"
+        "node_modules/@openzeppelin/contracts/utils/Context.sol",
+        "node_modules/@openzeppelin/contracts/utils/math/Math.sol",
+        "node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol"
       ],
       "versionRequirement": "^0.8.17",
       "artifacts": {
@@ -1065,6 +1070,81 @@
         },
         "Test_OneUP": {
           "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUp.t.sol/Test_OneUP.json"
+        }
+      }
+    },
+    "test/foundry/OneUpV2.t.sol": {
+      "lastModificationDate": 1685092215337,
+      "contentHash": "ccb9db92e3f786d03ca1a45d19a42f77",
+      "sourceName": "test/foundry/OneUpV2.t.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "london",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "contracts/OneUpRewards.sol",
+        "contracts/OneUpV2.sol",
+        "lib/forge-std/lib/ds-test/src/test.sol",
+        "lib/forge-std/src/Script.sol",
+        "lib/forge-std/src/Test.sol",
+        "lib/forge-std/src/Vm.sol",
+        "lib/forge-std/src/console.sol",
+        "lib/forge-std/src/console2.sol",
+        "node_modules/@openzeppelin/contracts/access/Ownable.sol",
+        "node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol",
+        "node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
+        "node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol",
+        "node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "node_modules/@openzeppelin/contracts/utils/Address.sol",
+        "node_modules/@openzeppelin/contracts/utils/Context.sol",
+        "node_modules/@openzeppelin/contracts/utils/math/Math.sol",
+        "node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol"
+      ],
+      "versionRequirement": "^0.8.16",
+      "artifacts": {
+        "IBalancerPool": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUpV2.t.sol/IBalancerPool.json"
+        },
+        "IBalancerPoolCreationHelper": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUpV2.t.sol/IBalancerPoolCreationHelper.json"
+        },
+        "IBalancerVault": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUpV2.t.sol/IBalancerVault.json"
+        },
+        "IComposableStablePool": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUpV2.t.sol/IComposableStablePool.json"
+        },
+        "IMultiFarmingPod": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUpV2.t.sol/IMultiFarmingPod.json"
+        },
+        "Test_OneUpV2": {
+          "0.8.17+commit.8df45f5f.Darwin.appleclang": "OneUpV2.t.sol/Test_OneUpV2.json"
         }
       }
     }
