@@ -103,6 +103,14 @@ contract OneUpMultiRewards is ReentrancyGuard, Ownable {
         emit Staked(msg.sender, amount);
     }
 
+    function stakeFor(uint256 amount, address account) external nonReentrant updateReward(account) {
+        require(amount > 0, "Cannot stake 0");
+        _totalSupply = _totalSupply.add(amount);
+        _balances[account] = _balances[account].add(amount);
+        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+        emit Staked(account, amount);
+    }
+
     function withdraw(uint256 amount) public nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot withdraw 0");
         _totalSupply = _totalSupply.sub(amount);

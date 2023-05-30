@@ -40,13 +40,14 @@ contract OneUpV2 is ERC20 {
     ////////// State Variables //////////
 
     IERC20 immutable public oneInchToken = IERC20(0x111111111117dC0aa78b770fA6A738034120C302);
+    OneUpMultiRewards public stakingContract; /// @dev The address of the staking contract where all rewards from 1inch staking will be sent
+
     address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;  
     address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
 
     bool public firstDeposit = true;        /// @dev Returns "false" after the first deposit has been made
     bool public vaultEnded;                 /// @dev Vault ends when all 1inch tokens are unstaked after duration period
-    address public stakingContract;         /// @dev The address of the staking contract where all rewards from 1inch staking will be sent
     address public delegatee;               /// @dev The address of the current delegatee
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
@@ -66,9 +67,8 @@ contract OneUpV2 is ERC20 {
     {
         duration = _duration;
         delegatee = _delegatee;
-        endTime = block.timestamp + duration;
         lastUpdateEndTime = block.timestamp; 
-        stakingContract = address(new OneUpMultiRewards(address(this)));
+        stakingContract = new OneUpMultiRewards(address(this));
     }
 
 
@@ -86,6 +86,7 @@ contract OneUpV2 is ERC20 {
 
         if (firstDeposit == true) {
             durationExtension = duration;
+            endTime = block.timestamp + duration;
             firstDeposit = false;
         }
 
@@ -106,7 +107,10 @@ contract OneUpV2 is ERC20 {
         ISt1inch(stake1inch).deposit(amount, durationExtension);
 
         // Stake for account in rewards contract
-        if (stake == true) { IMultiRewards(stakingContract).stakeFor(amount, _msgSender()); }
+        if (stake == true) { 
+            IERC20(address(this)).safeApprove(address(stakingContract), amount);
+            IMultiRewards(address(stakingContract)).stakeFor(amount, _msgSender());
+        }
 
         // Delegate UP
         IPowerPod(powerPod).delegate(delegatee);
@@ -117,8 +121,8 @@ contract OneUpV2 is ERC20 {
     function claimRewardsFromDelegate() public {
         IMultiFarmingPod(resolverFarmingPod).claim();
         uint256 toDeposit = oneInchToken.balanceOf(address(this));
-        oneInchToken.safeApprove(stakingContract, toDeposit);
-        IMultiRewards(stakingContract).notifyRewardAmount(address(oneInchToken), toDeposit);
+        oneInchToken.safeApprove(address(stakingContract), toDeposit);
+        IMultiRewards(address(stakingContract)).notifyRewardAmount(address(oneInchToken), toDeposit);
     }
 
     /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
