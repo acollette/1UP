@@ -288,13 +288,32 @@ contract Test_OneUpV2 is Test {
         assert(IERC20(address(OneUpContract)).balanceOf(bob) == 0);
         assert(OneUpStakingContract.balanceOf(bob) == amount);
         assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > initStaked1InchBob);
+    }
 
-        emit log_named_uint("1UP token balance of Bob after", IERC20(address(OneUpContract)).balanceOf(bob));
-        emit log_named_uint("totalSupply rewards contract", OneUpStakingContract.totalSupply());
-        emit log_named_uint("bob balance rewards contract", OneUpStakingContract.balanceOf(bob));
-        emit log_named_uint("1inch staked tokens of vault after", IERC20(stake1inch).balanceOf(address(OneUpContract)));
-        emit log_named_address("staking token in rewards contract", address(OneUpStakingContract.stakingToken()));
-        emit log_named_address("Staking contract address", address(OneUpStakingContract));
+    function test_OneUpV2_depositNoStake_state() public {
+        
+        uint256 amount = 100 ether;
+        deal(address(OneUpContract.oneInchToken()), bob, amount);
+
+        // pre check
+        uint256 initStaked1UPBob = OneUpStakingContract.balanceOf(bob);
+        uint256 initStaked1InchBob = IERC20(stake1inch).balanceOf(address(OneUpContract));
+        assert(IERC20(address(OneUpContract)).balanceOf(bob) == 0);
+
+        emit log_named_uint("1UP token balance of Bob init", IERC20(address(OneUpContract)).balanceOf(bob));
+        emit log_named_uint("1inch staked tokens of vault init", IERC20(stake1inch).balanceOf(address(OneUpContract)));
+
+        vm.warp(block.timestamp + 10 days);
+
+        vm.startPrank(bob);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), amount);
+        OneUpContract.deposit(amount, false);
+        vm.stopPrank();
+
+        // check
+        assert(IERC20(address(OneUpContract)).balanceOf(bob) == amount);
+        assert(OneUpStakingContract.balanceOf(bob) == initStaked1UPBob);
+        assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > initStaked1InchBob);
     }
 /*
     function test_OneUpV2_claimRewardsFromDelegates_state() public {
