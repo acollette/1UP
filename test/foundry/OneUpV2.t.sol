@@ -112,10 +112,10 @@ contract Test_OneUpV2 is Test {
 
     ///////////// Helper Functions //////////////
 
-    function deposit(uint256 amount, bool stake) public {
-        deal(address(OneUpContract.oneInchToken()), bob, amount);
+    function deposit(address user, uint256 amount, bool stake) public {
+        deal(address(OneUpContract.oneInchToken()), user, amount);
 
-        vm.startPrank(bob);
+        vm.startPrank(user);
         IERC20(oneInchToken).safeApprove(address(OneUpContract), amount);
         OneUpContract.deposit(amount, stake);
         vm.stopPrank();
@@ -204,7 +204,7 @@ contract Test_OneUpV2 is Test {
         initAmounts[1] = 1_000 ether;
 
         // put initial balance of both tokens in bob wallet
-        deposit(1_000 ether, false);
+        deposit(bob, 1_000 ether, false);
         deal(oneInchToken, bob, 1_000 ether);
 
         // check after first deposit
@@ -314,6 +314,56 @@ contract Test_OneUpV2 is Test {
         assert(IERC20(address(OneUpContract)).balanceOf(bob) == amount);
         assert(OneUpStakingContract.balanceOf(bob) == initStaked1UPBob);
         assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > initStaked1InchBob);
+    }
+
+    function test_OneUpV2_withdraw_vaultNotEnded_state() public {
+        deposit(bob, 1_000 ether, false);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 0);
+        assert(OneUpContract.balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.vaultEnded() == false);
+
+        vm.warp(OneUpContract.endTime() + 1);
+
+        vm.startPrank(bob);
+        OneUpContract.withdraw();
+        vm.stopPrank();
+
+        assert(OneUpContract.vaultEnded() == true);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.balanceOf(bob) == 0);
+
+    }
+
+    function test_OneUpV2_withdraw_vaultEnded_state() public {
+        deposit(bob, 1_000 ether, false);
+        deposit(alice, 5_000 ether, false);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 0);
+        assert(IERC20(oneInchToken).balanceOf(alice) == 0);
+        assert(OneUpContract.balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.balanceOf(alice) == 5_000 ether);
+
+        assert(OneUpContract.vaultEnded() == false);
+
+        vm.warp(OneUpContract.endTime() + 1);
+
+        // first withdraw which will set "vaultEnded" to "true and unstake from 1inch staking contract
+        vm.startPrank(bob);
+        OneUpContract.withdraw();
+        vm.stopPrank();
+
+        assert(OneUpContract.vaultEnded() == true);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.balanceOf(bob) == 0);
+
+        // second withdraw which will skip unstaking from 1inch staking contract
+        vm.startPrank(alice);
+        OneUpContract.withdraw();
+        vm.stopPrank();
+
+        assert(OneUpContract.vaultEnded() == true);
+        assert(IERC20(oneInchToken).balanceOf(alice) == 5_000 ether);
+        assert(OneUpContract.balanceOf(alice) == 0);
+
     }
 /*
     function test_OneUpV2_claimRewardsFromDelegates_state() public {

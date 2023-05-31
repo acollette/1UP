@@ -125,7 +125,7 @@ contract OneUpV2 is ERC20 {
         IMultiRewards(address(stakingContract)).notifyRewardAmount(address(oneInchToken), toDeposit);
     }
 
-    /// @notice This function will unstake 1inch tokens after duration ends and remove liquidity from the Balancer pool.
+    /// @notice This function will unstake 1inch tokens after duration ends.
     function withdraw() external {
         require(block.timestamp > endTime, "pool not ended");
 
