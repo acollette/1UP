@@ -237,6 +237,7 @@ contract Test_OneUpV2 is Test {
         emit log_named_bytes32("poolID", IBalancerVault(balancerPool).getPoolId());
         emit log_named_address("Balancer Pool deployed", balancerPool);
 
+
     }
 
 
@@ -365,6 +366,32 @@ contract Test_OneUpV2 is Test {
         assert(OneUpContract.balanceOf(alice) == 0);
 
     }
+
+    function test_OneUpV2_claimAndAddRewards_state() public {
+        deposit(bob, 1_000 ether, true);
+
+        vm.warp(block.timestamp + 10 days);
+
+        // pre check
+        assert(IERC20(oneInchToken).balanceOf(bob) == 0);
+
+        // For now we will bypass claiming on the farming pod and simulate the rewards received
+        deal(oneInchToken, address(OneUpContract), 2_000 ether);
+        vm.startPrank(address(OneUpContract));
+        IERC20(oneInchToken).safeApprove(address(OneUpStakingContract), 2_000 ether);
+        OneUpStakingContract.notifyRewardAmount(oneInchToken, 2_000 ether);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 10 days);
+        
+
+
+
+
+
+    }
+
+
 /*
     function test_OneUpV2_claimRewardsFromDelegates_state() public {
         uint256 amountToDeposit = 1_000 ether;

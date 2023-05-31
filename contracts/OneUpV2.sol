@@ -69,6 +69,7 @@ contract OneUpV2 is ERC20 {
         delegatee = _delegatee;
         lastUpdateEndTime = block.timestamp; 
         stakingContract = new OneUpMultiRewards(address(this));
+        stakingContract.addReward(address(oneInchToken), address(this), 14 days);
     }
 
 
@@ -147,11 +148,5 @@ contract OneUpV2 is ERC20 {
         }
     }
 
-/*     /// @notice This function sets the staking contract.
-    function setStakingContract(address _stakingContract) public {
-        require(stakingActivated == false, "staking contract already set");
-        stakingActivated = true;
-        stakingContract = _stakingContract;
-    } */
 
 }
