@@ -237,7 +237,6 @@ contract Test_OneUpV2 is Test {
         emit log_named_bytes32("poolID", IBalancerVault(balancerPool).getPoolId());
         emit log_named_address("Balancer Pool deployed", balancerPool);
 
-
     }
 
 
@@ -317,6 +316,23 @@ contract Test_OneUpV2 is Test {
         assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > initStaked1InchBob);
     }
 
+    function test_depositAndExtendDuration_state() public {
+
+        uint256 amount = 100 ether;
+        deal(address(OneUpContract.oneInchToken()), bob, amount);
+
+        // pre check
+        assert(OneUpContract.endTime() == block.timestamp + OneUpContract.duration());
+
+        // we're warping over 31 days in order to adapt "endTime" of the vault
+        vm.warp(block.timestamp + 31 days);
+
+        deposit(bob, amount, false);
+
+        // check
+        assert(OneUpContract.endTime() == block.timestamp + OneUpContract.duration());
+    }
+
     function test_OneUpV2_withdraw_vaultNotEnded_state() public {
         deposit(bob, 1_000 ether, false);
         assert(IERC20(oneInchToken).balanceOf(bob) == 0);
@@ -367,7 +383,7 @@ contract Test_OneUpV2 is Test {
 
     }
 
-    function test_OneUpV2_claimAndAddRewards_state() public {
+    function test_OneUpV2_AddRewardsAndGetReward_state() public {
         deposit(bob, 1_000 ether, true);
 
         vm.warp(block.timestamp + 10 days);
@@ -383,148 +399,14 @@ contract Test_OneUpV2 is Test {
         vm.stopPrank();
 
         vm.warp(block.timestamp + 10 days);
-        
-
-
-
-
-
-    }
-
-
-/*
-    function test_OneUpV2_claimRewardsFromDelegates_state() public {
-        uint256 amountToDeposit = 1_000 ether;
-        uint256 daysToClaim = 100 days;
-
-        deal(address(OneUpContract.oneInchToken()), bob, amountToDeposit);
-
-        // make a deposit
-        vm.warp(block.timestamp + 10 days);
 
         vm.startPrank(bob);
-        IERC20(oneInchToken).safeApprove(address(OneUpContract), amountToDeposit);
-        OneUpContract.deposit(amountToDeposit, bob);
+        OneUpStakingContract.getReward();
         vm.stopPrank();
-        
-        // impersonate the distributor of the farm and start reward period
-        address distributor = 0x5E89f8d81C74E311458277EA1Be3d3247c7cd7D1;
-        address farmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
-        vm.startPrank(distributor);
 
-        //emit log_named_uint("1inch balance farmingPod before", IERC20(oneInchToken).balanceOf(farmingPod));
-        //IERC20(oneInchToken).safeApprove(farmingPod, 1_000_000 ether);
-        //IMultiFarmingPod(farmingPod).startFarming(IERC20(oneInchToken), 1_000_000 ether, 60 days);
-        //vm.stopPrank();
-        //emit log_named_uint("1inch balance farmingPod after", IERC20(oneInchToken).balanceOf(farmingPod));
-
-        // + 100 days
-        vm.warp(block.timestamp + daysToClaim);
-
-        // claim rewards
-        //vm.startPrank(address(OneUpContract));
-        //IMultiFarmingPod(farmingPod).claim();
-        //vm.stopPrank();
-
-        // simulate claiming rewards
-        uint256 APROnPeriod = (daysToClaim * APR) / 365 days;
-        uint256 amountClaimable = (APROnPeriod * amountToDeposit) / BIPS; 
-        emit log_named_uint("Amount claimable", amountClaimable);
-        simulateRewardsClaimed(amountClaimable);
+        assert(IERC20(oneInchToken).balanceOf(bob) > 0);
+        emit log_named_uint("1inch claimed bob", IERC20(oneInchToken).balanceOf(bob));
 
     }
-
-    function test_OneUpV2_fullFlow_simulation() public {
-        emit log_named_uint("Alice 1UP init balance", OneUpContract.balanceOf(alice));
-        emit log_named_uint("Nico 1UP init balance", OneUpContract.balanceOf(nico));
-        emit log_named_uint("Balancer Pool init 1UP balance", getPool1UPBalance());
-
-        emit log_named_uint("Alice 1Inch init balance", IERC20(oneInchToken).balanceOf(alice));
-        emit log_named_uint("Nico 1Inch init balance", IERC20(oneInchToken).balanceOf(nico));
-        emit log_named_uint("Balancer Pool init 1inch balance", getPool1InchBalance());
-
-        vm.warp(block.timestamp + 10 days);
-
-        ////////////// DAY 10 ///////////////
-        emit log_string("********** Day 10 **********");
-        emit log_string("Alice makes a deposit of 1_000 1Inch tokens");
-        // Alice makes a deposit of 1_000 1Inch
-        deal(oneInchToken, alice, 1_000 ether);
-
-        vm.startPrank(alice);
-        IERC20(oneInchToken).safeApprove(address(OneUpContract), 1_000 ether);
-        OneUpContract.deposit(1_000 ether, alice);
-        vm.stopPrank();
-
-        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
-        emit log_named_uint("Balancer Pool 1UP balance", getPool1UPBalance());
-        emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
-        emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
-
-        vm.warp(block.timestamp + 20 days);
-
-        //////////// DAY 30 ///////////////////
-        emit log_string("********** Day 30 **********");
-        emit log_string("Nico makes a deposit of 200 1Inch tokens");
-        // Bob makes a deposit of 200 1Inch
-        deal(oneInchToken, nico, 200 ether);
-
-        vm.startPrank(nico);
-        IERC20(oneInchToken).safeApprove(address(OneUpContract), 200 ether);
-        OneUpContract.deposit(200 ether, nico);
-        vm.stopPrank();
-
-        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
-        emit log_named_uint("Nico 1UP balance", OneUpContract.balanceOf(nico));
-        emit log_named_uint("Balancer Pool 1UP balance", getPool1UPBalance());
-        emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
-        emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
-        emit log_named_uint("OneUpContract BPT balance", IERC20(balancerPool).balanceOf(address(OneUpContract)));
-
-        vm.warp(block.timestamp + 70 days);
-
-        //////////// DAY 100 //////////////////////
-        emit log_string("********** Day 100 **********");
-        emit log_string("Vault will claim rewards for the first time");
-
-        uint256 daysToClaim = 100 days;     // We know this is an approximation as we should do weighted average balance for simulation
-
-        uint256 APROnPeriod = (daysToClaim * APR) / 365 days;
-        uint256 amountClaimable = (APROnPeriod * OneUpContract.totalStaked()) / BIPS; 
-        emit log_named_uint("Amount claimable", amountClaimable);
-        simulateRewardsClaimed(amountClaimable);
-
-        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
-        emit log_named_uint("Nico 1UP balance", OneUpContract.balanceOf(nico));
-        emit log_named_uint("Balancer Pool 1UP balance", getPool1UPBalance());
-        emit log_named_uint("Vault staked 1Inch balance", IERC20(stake1inch).balanceOf(address(OneUpContract)));
-        emit log_named_uint("Balancer Pool 1inch balance", getPool1InchBalance());
-        emit log_named_uint("OneUpContract BPT balance", IERC20(balancerPool).balanceOf(address(OneUpContract)));
-        
-        vm.warp(block.timestamp + 10 days);
-        //////////// DAY 110 //////////////////////
-        emit log_string("********** Day 110 **********");
-        emit log_string("Alice will get liquidity and swap 1UP for 1Inch in Balancer Pool");
-
-        emit log_named_uint("Alice 1UP balance", OneUpContract.balanceOf(alice));
-        SingleSwap memory ss;
-        ss.poolId = IBalancerVault(balancerPool).getPoolId();
-        ss.kind = SwapKind.GIVEN_IN;
-        ss.assetIn = address(OneUpContract);
-        ss.assetOut = oneInchToken;
-        ss.amount = 5 ether;
-        ss.userData = ""; 
-
-        FundManagement memory fm;
-        fm.sender = alice;
-        fm.fromInternalBalance = false;
-        fm.recipient = payable(alice);
-        fm.toInternalBalance = false;
-
-        vm.startPrank(alice);
-        IERC20(address(OneUpContract)).safeApprove(balancerVault, 5 ether);
-        IBalancerVault(balancerVault).swap(ss, fm, 0, block.timestamp);
-        vm.stopPrank;
-    } */
 
 }

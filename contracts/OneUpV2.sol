@@ -92,9 +92,9 @@ contract OneUpV2 is ERC20 {
         }
 
         if (block.timestamp > lastUpdateEndTime + 30 days) {
-            endTime += 30 days;
+            endTime = block.timestamp + duration;
+            durationExtension = block.timestamp - lastUpdateEndTime;
             lastUpdateEndTime = block.timestamp;
-            durationExtension = 30 days;
         }
 
         // Deposit 1inch tokens
