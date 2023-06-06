@@ -414,6 +414,27 @@ contract Test_OneUpV2 is Test {
 
     }
 
+    function test_OneUpV2_withdraw_restrictions() public {
+        deposit(bob, 1_000 ether, false);
+        deposit(alice, 5_000 ether, false);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 0);
+        assert(IERC20(oneInchToken).balanceOf(alice) == 0);
+        assert(OneUpContract.balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.balanceOf(alice) == 5_000 ether);
+
+        assert(OneUpContract.vaultEnded() == false);
+
+        // warp time to 1 second before end time of the pool
+        vm.warp(OneUpContract.endTime() - 1);
+
+        // try to withdraw - should fail
+        vm.startPrank(bob);
+        vm.expectRevert("pool not ended");
+        OneUpContract.withdraw();
+        vm.stopPrank();
+
+    }
+
     function test_OneUpV2_AddRewardsAndGetReward_state() public {
         deposit(bob, 1_000 ether, true);
 
