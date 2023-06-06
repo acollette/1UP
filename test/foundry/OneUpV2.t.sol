@@ -290,6 +290,37 @@ contract Test_OneUpV2 is Test {
         assert(IERC20(stake1inch).balanceOf(address(OneUpContract)) > initStaked1InchBob);
     }
 
+    function test_OneUpV2_deposit_restrictions() public {
+        deposit(bob, 1_000 ether, false);
+        deposit(alice, 5_000 ether, false);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 0);
+        assert(IERC20(oneInchToken).balanceOf(alice) == 0);
+        assert(OneUpContract.balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.balanceOf(alice) == 5_000 ether);
+
+        assert(OneUpContract.vaultEnded() == false);
+
+        vm.warp(OneUpContract.endTime() + 1);
+
+        // first withdraw which will set "vaultEnded" to "true and unstake from 1inch staking contract
+        vm.startPrank(bob);
+        OneUpContract.withdraw();
+        vm.stopPrank();
+
+        assert(OneUpContract.vaultEnded() == true);
+        assert(IERC20(oneInchToken).balanceOf(bob) == 1_000 ether);
+        assert(OneUpContract.balanceOf(bob) == 0);
+
+        // try to deposit in vault - should fail
+        deal(address(OneUpContract.oneInchToken()), bob, 1_000 ether);
+        vm.startPrank(bob);
+        IERC20(oneInchToken).safeApprove(address(OneUpContract), 1_000 ether);
+        vm.expectRevert("Vault ended");
+        OneUpContract.deposit(1_000 ether, false);
+        vm.stopPrank();
+
+    }
+
     function test_OneUpV2_depositNoStake_state() public {
         
         uint256 amount = 100 ether;
