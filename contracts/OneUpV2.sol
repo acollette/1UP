@@ -20,6 +20,7 @@ interface IPowerPod {
 
 interface IMultiFarmingPod {
     function claim() external;
+    function rewardsTokens() external view returns (address[] memory);
 }
 
 interface IMultiRewards {
@@ -49,6 +50,7 @@ contract OneUpV2 is ERC20 {
     bool public firstDeposit = true;        /// @dev Returns "false" after the first deposit has been made
     bool public vaultEnded;                 /// @dev Vault ends when all 1inch tokens are unstaked after duration period
     address public delegatee;               /// @dev The address of the current delegatee
+    address[] rewardTokens;                 /// @dev Tokens given as reward from the resolver
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public duration;                /// @dev Staking duration in Unix
@@ -120,10 +122,21 @@ contract OneUpV2 is ERC20 {
 
     /// @notice This function will claim rewards from the delegates and add the rewards to the staking contract
     function claimRewardsFromDelegate() public {
+        updateRewardTokens();
         IMultiFarmingPod(resolverFarmingPod).claim();
-        uint256 toDeposit = oneInchToken.balanceOf(address(this));
-        oneInchToken.safeApprove(address(stakingContract), toDeposit);
-        IMultiRewards(address(stakingContract)).notifyRewardAmount(address(oneInchToken), toDeposit);
+
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            if (IERC20(rewardTokens[i]).balanceOf(address(this)) > 0) {
+                uint256 toDeposit = IERC20(rewardTokens[i]).balanceOf(address(this));
+                IERC20(rewardTokens[i]).safeApprove(address(stakingContract), toDeposit);
+                IMultiRewards(address(stakingContract)).notifyRewardAmount(rewardTokens[i], toDeposit);
+            }
+        }
+    }
+
+    function updateRewardTokens() private {
+        rewardTokens = IMultiFarmingPod(resolverFarmingPod).rewardsTokens();
+        
     }
 
     /// @notice This function will unstake 1inch tokens after duration ends.
@@ -147,6 +160,5 @@ contract OneUpV2 is ERC20 {
             oneInchToken.safeTransfer(_msgSender(), amountWithdrawable);
         }
     }
-
 
 }
