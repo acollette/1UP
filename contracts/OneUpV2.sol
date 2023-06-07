@@ -122,7 +122,10 @@ contract OneUpV2 is ERC20 {
 
     /// @notice This function will claim rewards from the delegates and add the rewards to the staking contract
     function claimRewardsFromDelegate() public {
-        updateRewardTokens();
+        if (rewardTokens.length != IMultiFarmingPod(resolverFarmingPod).rewardsTokens().length) {
+            _updateRewardTokens();
+        }
+
         IMultiFarmingPod(resolverFarmingPod).claim();
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -134,9 +137,14 @@ contract OneUpV2 is ERC20 {
         }
     }
 
-    function updateRewardTokens() private {
-        rewardTokens = IMultiFarmingPod(resolverFarmingPod).rewardsTokens();
-        
+    function _updateRewardTokens() private {
+        address[] memory resolverRewardTokens = IMultiFarmingPod(resolverFarmingPod).rewardsTokens();
+        for (uint256 i = 0; i < resolverRewardTokens.length; i++) {
+            if (rewardTokens[i] != resolverRewardTokens[i]) {
+                rewardTokens[i] = resolverRewardTokens[i];
+                stakingContract.addReward(rewardTokens[i], address(this), 14 days);
+            }
+        }
     }
 
     /// @notice This function will unstake 1inch tokens after duration ends.
