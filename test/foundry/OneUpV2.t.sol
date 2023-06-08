@@ -248,6 +248,7 @@ contract Test_OneUpV2 is Test {
         assert(OneUpContract.stake1inch() == 0x9A0C8Ff858d273f57072D714bca7411D717501D7);
         assert(OneUpContract.powerPod() == 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947);
         assert(OneUpContract.resolverFarmingPod() == 0x7E78A8337194C06314300D030D41Eb31ed299c39);
+        assert(OneUpContract.rewardTokens(0) == address(OneUpContract.oneInchToken()));
 
         assert(address(OneUpStakingContract.stakingToken()) == address(OneUpContract));
 

@@ -50,7 +50,7 @@ contract OneUpV2 is ERC20 {
     bool public firstDeposit = true;        /// @dev Returns "false" after the first deposit has been made
     bool public vaultEnded;                 /// @dev Vault ends when all 1inch tokens are unstaked after duration period
     address public delegatee;               /// @dev The address of the current delegatee
-    address[] rewardTokens;                 /// @dev Tokens given as reward from the resolver
+    address[] public rewardTokens;          /// @dev Tokens given as reward from the resolver
     uint256 public endTime;                 /// @dev The time at which the vault balance will be unstakable
     uint256 public lastUpdateEndTime;       /// @dev The last time that "endTime" was updated
     uint256 public duration;                /// @dev Staking duration in Unix
@@ -72,6 +72,7 @@ contract OneUpV2 is ERC20 {
         lastUpdateEndTime = block.timestamp; 
         stakingContract = new OneUpMultiRewards(address(this));
         stakingContract.addReward(address(oneInchToken), address(this), 14 days);
+        rewardTokens.push(address(oneInchToken));
     }
 
 
@@ -137,6 +138,7 @@ contract OneUpV2 is ERC20 {
         }
     }
 
+    /// Modify the way to update rewardTokens (.push()) and avoid out of bounds potential error 
     function _updateRewardTokens() private {
         address[] memory resolverRewardTokens = IMultiFarmingPod(resolverFarmingPod).rewardsTokens();
         for (uint256 i = 0; i < resolverRewardTokens.length; i++) {
