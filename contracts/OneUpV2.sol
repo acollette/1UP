@@ -138,14 +138,11 @@ contract OneUpV2 is ERC20 {
         }
     }
 
-    /// Modify the way to update rewardTokens (.push()) and avoid out of bounds potential error 
     function _updateRewardTokens() private {
         address[] memory resolverRewardTokens = IMultiFarmingPod(resolverFarmingPod).rewardsTokens();
-        for (uint256 i = 0; i < resolverRewardTokens.length; i++) {
-            if (rewardTokens[i] != resolverRewardTokens[i]) {
-                rewardTokens[i] = resolverRewardTokens[i];
-                stakingContract.addReward(rewardTokens[i], address(this), 14 days);
-            }
+        for (uint256 i = rewardTokens.length; i < resolverRewardTokens.length; i++) {
+            rewardTokens.push(resolverRewardTokens[i]);
+            stakingContract.addReward(rewardTokens[i], address(this), 14 days);
         }
     }
 
