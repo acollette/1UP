@@ -104,6 +104,7 @@ contract Test_OneUpV2 is Test {
     // tokens
     address oneInchToken = 0x111111111117dC0aa78b770fA6A738034120C302;
     address USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
 
     // contracts
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
@@ -481,6 +482,59 @@ contract Test_OneUpV2 is Test {
         // check
         assert(OneUpContract.rewardTokens(0) == oneInchToken);
         assert(OneUpContract.rewardTokens(1) == USDC);
+
+    }
+
+    function test_OneUpV2_AddRewardsAndGetRewards_state() public {
+        deposit(bob, 1_000 ether, true);
+
+        //pre check
+        assert(IERC20(oneInchToken).balanceOf(bob) == 0);
+        assert(IERC20(USDC).balanceOf(bob) == 0);
+        assert(IERC20(DAI).balanceOf(bob) == 0);
+
+        // add rewards in multifarming pod
+        vm.startPrank(IMultiFarmingPod(OneUpContract.resolverFarmingPod()).owner());
+        IMultiFarmingPod(OneUpContract.resolverFarmingPod()).addRewardsToken(USDC);
+        IMultiFarmingPod(OneUpContract.resolverFarmingPod()).addRewardsToken(DAI);
+        vm.stopPrank();
+
+        // For now we will bypass claiming on the farming pod and simulate the rewards received
+        deal(oneInchToken, address(OneUpContract), 2_000 ether);
+        deal(USDC, address(OneUpContract), 10_000 * 10**6);
+        deal(DAI, address(OneUpContract), 6_000 ether);
+
+        // claim rewards, to update reward tokens
+        vm.startPrank(bob);
+        OneUpStakingContract.getReward();
+        vm.stopPrank();
+
+
+        // simulate receiving the rewards
+        vm.startPrank(address(OneUpContract));
+        IERC20(oneInchToken).safeApprove(address(OneUpStakingContract), 2_000 ether);
+        IERC20(USDC).safeApprove(address(OneUpStakingContract), 10_000 * 10**6);
+        IERC20(DAI).safeApprove(address(OneUpStakingContract), 6_000 ether);
+        OneUpStakingContract.notifyRewardAmount(oneInchToken, 2_000 ether);
+        OneUpStakingContract.notifyRewardAmount(USDC, 10_000 * 10**6);
+        OneUpStakingContract.notifyRewardAmount(DAI, 6_000 ether);
+        vm.stopPrank();
+
+        // warp + 10 days to accumulate rewards
+        vm.warp(block.timestamp + 10 days);
+
+        // claim rewards
+        vm.startPrank(bob);
+        OneUpStakingContract.getReward();
+        vm.stopPrank();
+
+        // final check
+        assert(IERC20(oneInchToken).balanceOf(bob) > 0);
+        assert(IERC20(USDC).balanceOf(bob) > 0);
+        assert(IERC20(DAI).balanceOf(bob) > 0);
+        emit log_named_uint("1inch claimed bob", IERC20(oneInchToken).balanceOf(bob));
+        emit log_named_uint("1inch claimed bob", IERC20(USDC).balanceOf(bob));
+        emit log_named_uint("1inch claimed bob", IERC20(DAI).balanceOf(bob));
 
     }
 
