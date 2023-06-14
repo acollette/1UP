@@ -41,10 +41,10 @@ contract OneUpV2 is ERC20 {
     ////////// State Variables //////////
 
     IERC20 immutable public oneInchToken = IERC20(0x111111111117dC0aa78b770fA6A738034120C302);
-    OneUpMultiRewards public stakingContract; /// @dev The address of the staking contract where all rewards from 1inch staking will be sent
+    OneUpMultiRewards public stakingContract; 
 
-    address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;  
-    address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;
+    address immutable public stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7; 
+    address immutable public powerPod = 0xAccfAc2339e16DC80c50d2fa81b5c2B049B4f947;    
     address immutable public resolverFarmingPod = 0x7E78A8337194C06314300D030D41Eb31ed299c39;
 
     bool public firstDeposit = true;        /// @dev Returns "false" after the first deposit has been made
@@ -138,6 +138,7 @@ contract OneUpV2 is ERC20 {
         }
     }
 
+    /// @notice This function will update the reward tokens based on the resolver's reward tokens.
     function _updateRewardTokens() private {
         address[] memory resolverRewardTokens = IMultiFarmingPod(resolverFarmingPod).rewardsTokens();
         for (uint256 i = rewardTokens.length; i < resolverRewardTokens.length; i++) {

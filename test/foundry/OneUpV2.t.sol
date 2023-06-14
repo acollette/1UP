@@ -53,6 +53,8 @@ interface IMultiFarmingPod {
     function startFarming(IERC20, uint256 amount, uint256 period) external;
     function claim() external;
     function farmed(IERC20 rewardsToken, address account) external returns(uint256);
+    function owner() external returns (address);
+    function addRewardsToken(address rewardsToken) external;
 }
 
 interface IBalancerPoolCreationHelper {
@@ -99,7 +101,11 @@ contract Test_OneUpV2 is Test {
     address alice = 0x5a29280d4668622ae19B8bd0bacE271F11Ac89dA;
     address nico = 0x1F7673Af4859f0ACD66bB01eda90a2694Ed271DB;
 
+    // tokens
     address oneInchToken = 0x111111111117dC0aa78b770fA6A738034120C302;
+    address USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+
+    // contracts
     address stake1inch = 0x9A0C8Ff858d273f57072D714bca7411D717501D7;
     address balancerFactory = 0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76;
     address balancerPoolCreationHelper = 0xa289a03f46f144fAaDd9Fc51b006d7322ECc9B04;
@@ -436,7 +442,7 @@ contract Test_OneUpV2 is Test {
 
     }
 
-    function test_OneUpV2_AddRewardsAndGetReward_state() public {
+    function test_OneUpV2_NotifyRewardsAndGetReward_state() public {
         deposit(bob, 1_000 ether, true);
 
         vm.warp(block.timestamp + 10 days);
@@ -459,7 +465,25 @@ contract Test_OneUpV2 is Test {
 
         assert(IERC20(oneInchToken).balanceOf(bob) > 0);
         emit log_named_uint("1inch claimed bob", IERC20(oneInchToken).balanceOf(bob));
+    }
+
+    function test_OneUpV2_AddRewards_state() public {
+        // add reward in multifarming pod
+        vm.startPrank(IMultiFarmingPod(OneUpContract.resolverFarmingPod()).owner());
+        IMultiFarmingPod(OneUpContract.resolverFarmingPod()).addRewardsToken(USDC);
+        vm.stopPrank();
+
+        // claim rewards (in order to update rewardTokens array)
+        vm.startPrank(bob);
+        OneUpContract.claimRewardsFromDelegate();
+        vm.stopPrank();
+
+        // check
+        assert(OneUpContract.rewardTokens(0) == oneInchToken);
+        assert(OneUpContract.rewardTokens(1) == USDC);
 
     }
+
+
 
 }
