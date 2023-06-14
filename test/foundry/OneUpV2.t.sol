@@ -482,6 +482,8 @@ contract Test_OneUpV2 is Test {
         // check
         assert(OneUpContract.rewardTokens(0) == oneInchToken);
         assert(OneUpContract.rewardTokens(1) == USDC);
+        assert(OneUpStakingContract.rewardTokens(0) == oneInchToken);
+        assert(OneUpStakingContract.rewardTokens(1) == USDC);
 
     }
 
@@ -499,18 +501,16 @@ contract Test_OneUpV2 is Test {
         IMultiFarmingPod(OneUpContract.resolverFarmingPod()).addRewardsToken(DAI);
         vm.stopPrank();
 
+        // claim rewards from delegates, to update reward tokens
+        vm.startPrank(bob);
+        OneUpContract.claimRewardsFromDelegate();
+        vm.stopPrank();
+
         // For now we will bypass claiming on the farming pod and simulate the rewards received
         deal(oneInchToken, address(OneUpContract), 2_000 ether);
         deal(USDC, address(OneUpContract), 10_000 * 10**6);
         deal(DAI, address(OneUpContract), 6_000 ether);
 
-        // claim rewards, to update reward tokens
-        vm.startPrank(bob);
-        OneUpStakingContract.getReward();
-        vm.stopPrank();
-
-
-        // simulate receiving the rewards
         vm.startPrank(address(OneUpContract));
         IERC20(oneInchToken).safeApprove(address(OneUpStakingContract), 2_000 ether);
         IERC20(USDC).safeApprove(address(OneUpStakingContract), 10_000 * 10**6);
